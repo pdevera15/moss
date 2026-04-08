@@ -1,12 +1,17 @@
 import { EditorView } from '@codemirror/view'
 import { Compartment } from '@codemirror/state'
 
+/**
+ * Module-level Compartment for the Moss theme.
+ * Safe for single-editor use only — do not share across multiple EditorView instances.
+ * Used in Editor.svelte: created once at state init, reconfigured on dark mode change.
+ */
 export const themeCompartment = new Compartment()
 
 // buildMossTheme returns the raw EditorView.theme extension.
 // Use this in themeCompartment.reconfigure() for dark mode switching.
 // getMossTheme() wraps it in themeCompartment.of() for initial EditorState creation.
-export function buildMossTheme(dark: boolean) {
+export function buildMossTheme(dark = false) {
   return EditorView.theme(
     {
       '&': {
@@ -36,7 +41,7 @@ export function buildMossTheme(dark: boolean) {
       },
       '.cm-activeLine': {
         backgroundColor: 'var(--color-surface)',
-        borderRadius: '3px',
+        borderRadius: 'var(--radius-sm)',
       },
       '.cm-gutters': {
         background: 'var(--color-bg)',

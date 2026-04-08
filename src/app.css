@@ -1,0 +1,158 @@
+/* ─── ui/themes/tokens.css ─────────────────────────────────────────────────
+   Design tokens as CSS custom properties.
+   This file is the single source of truth for all visual decisions.
+   Import in app.css — do not duplicate values elsewhere.
+──────────────────────────────────────────────────────────────────────────── */
+@import "tailwindcss";
+
+/* Geist Mono — loaded from npm package font files */
+@font-face {
+  font-family: "GeistMono";
+  src: url("/src/static/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* Colors */
+  --color-bg:           #FAFAF8;
+  --color-moss:         #5A7F54;
+  --color-moss-light:   #7AA874;
+  --color-moss-dark:    #3F5C3B;
+  --color-amber:        #C4905A;
+  --color-surface:      #F3F2EE;
+  --color-border:       #E5E3DC;
+  --color-text:         #1C1B18;
+  --color-text-muted:   #6B6A63;
+
+  /* Fonts */
+  --font-title: "DM Serif Display", Georgia, serif;
+  --font-body:  "Lora", Georgia, serif;
+  --font-mono:  "GeistMono", "GeistMonoVariable", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "GeistMono", "GeistMonoVariable", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+
+  /* 8pt spacing grid */
+  --spacing-1:  4px;
+  --spacing-2:  8px;
+  --spacing-3:  12px;
+  --spacing-4:  16px;
+  --spacing-6:  24px;
+  --spacing-8:  32px;
+  --spacing-12: 48px;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 12px;
+  --radius-xl: 18px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar — thin and unobtrusive */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--color-border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+
+
+:root {
+  /* ── Colors ──────────────────────────────────────────────────────────── */
+  --color-bg:          #FAFAF8;   /* off-white canvas */
+  --color-surface:     #F3F2EE;   /* sidebar, panels */
+  --color-surface-2:   #ECEAE4;   /* hover, selected states */
+  --color-border:      #E5E3DC;   /* dividers */
+
+  --color-text:        #1C1B18;   /* primary text */
+  --color-text-muted:  #6B6A63;   /* secondary text, placeholders */
+  --color-text-faint:  #A8A69F;   /* timestamps, hints */
+
+  --color-moss:        #5A7F54;   /* primary accent — green */
+  --color-moss-light:  #7AA874;   /* lighter green for hover */
+  --color-moss-dark:   #3F5C3B;   /* darker green for pressed */
+  --color-moss-tint:   #EEF4ED;   /* very light green background */
+
+  --color-amber:       #C4905A;   /* cursor accent — used sparingly */
+
+  /* ── Typography ──────────────────────────────────────────────────────── */
+  --font-title: "DM Serif Display", Georgia, "Times New Roman", serif;
+  --font-body:  "Lora", Georgia, "Times New Roman", serif;
+  --font-mono:  "GeistMono", "GeistMonoVariable", ui-monospace, "Cascadia Code",
+                "Source Code Pro", Menlo, Consolas, monospace;
+
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 13px;
+  --font-size-md:   14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   20px;
+  --font-size-2xl:  24px;
+  --font-size-3xl:  32px;
+
+  --line-height-tight:  1.3;
+  --line-height-normal: 1.5;
+  --line-height-loose:  1.7;
+
+  /* ── Spacing (8pt grid) ──────────────────────────────────────────────── */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-12:  48px;
+  --space-16:  64px;
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  --sidebar-width:    208px;
+  --note-list-width:  264px;
+  --editor-max-width: 760px;
+
+  /* ── Border radius ───────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 12px;
+  --radius-xl: 18px;
+
+  /* ── Shadows ─────────────────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(28, 27, 24, 0.06);
+  --shadow-md: 0 2px 8px rgba(28, 27, 24, 0.10);
+  --shadow-lg: 0 8px 24px rgba(28, 27, 24, 0.12);
+
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  --duration-fast:   80ms;
+  --duration-normal: 150ms;
+  --duration-slow:   250ms;
+  --ease-default:    cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Dark theme skeleton — implement properly when theming is added */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"],
+  :root[data-theme="dark"] {
+    --color-bg:         #1A1917;
+    --color-surface:    #211F1C;
+    --color-surface-2:  #2A2825;
+    --color-border:     #333028;
+    --color-text:       #F0EEE9;
+    --color-text-muted: #9B9890;
+    --color-text-faint: #5E5C57;
+    --color-moss-tint:  #1E2A1D;
+  }
+}

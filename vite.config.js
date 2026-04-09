@@ -5,10 +5,12 @@ import tailwindcss from '@tailwindcss/vite'
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
+// @ts-expect-error process is a nodejs global
+const isTest = process.env.VITEST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [sveltekit(),tailwindcss()],
+  plugins: isTest ? [tailwindcss()] : [sveltekit(), tailwindcss()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

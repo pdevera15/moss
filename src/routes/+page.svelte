@@ -1,48 +1,16 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { EditorView, keymap, highlightSpecialChars, drawSelection, dropCursor, highlightActiveLine } from "@codemirror/view";
-  import { EditorState } from "@codemirror/state";
-  import { history, historyKeymap, defaultKeymap } from "@codemirror/commands";
-  import { bracketMatching, indentOnInput } from "@codemirror/language";
-  import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-  import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+  import EditorHeader from '$lib/components/Editor/EditorHeader.svelte'
+  import Editor from '$lib/components/Editor/Editor.svelte'
+  import StatusBar from '$lib/components/Editor/StatusBar.svelte'
 
-  let activeSection = $state<'notes' | 'tasks' | 'search'>('notes');
+  let activeSection = $state<'notes' | 'tasks' | 'search'>('notes')
+  let noteTitle = $state('Welcome to Moss')
+  let noteBody  = $state('Start writing here…')
+  let editorEl  = $state<HTMLElement | null>(null)
 
-  let editorElement: HTMLDivElement;
-  let view: EditorView;
-
-  onMount(() => {
-    view = new EditorView({
-      parent: node,
-      state: EditorState.create({
-        doc: "console.log('Simple TS implementation');",
-        extensions: [
-          highlightSpecialChars(),
-          history(),
-          drawSelection(),
-          dropCursor(),
-          EditorState.allowMultipleSelections.of(true),
-          indentOnInput(),
-          bracketMatching(),
-          closeBrackets(),
-          highlightActiveLine(),
-          keymap.of([
-            ...closeBracketsKeymap,
-            ...defaultKeymap,
-            ...searchKeymap,
-            ...historyKeymap,
-          ])
-        ],
-      parent: editorElement
-    }),
-  });
-  });
-
-  onDestroy(() => {
-    if (view) view.destroy();
-  });
-
+  let wordCount = $derived(
+    noteBody.trim().split(/\s+/).filter(Boolean).length
+  )
 </script>
 <div class="app-shell">
 
@@ -137,17 +105,18 @@
   </section>
 
   <!-- ── Editor (flex-1) ────────────────────────────────────────────── -->
-  <main class="editor-pane">
-    <div class="editor-toolbar">
-      <!-- CodeMirror toolbar placeholder -->
-      <span class="toolbar-placeholder">editor toolbar</span>
-    </div>
-    <div class="editor-content">
-      <h1 class="editor-title" contenteditable="true" spellcheck="false">Welcome to Moss</h1>
-      <div class="editor-body" contenteditable="true" spellcheck="false" bind:this={editorElement}>
-        <p>Start writing. CodeMirror 6 goes here.</p>
-      </div>
-    </div>
+  <main class="editor-pane" bind:this={editorEl}>
+    <EditorHeader
+      bind:title={noteTitle}
+      ontitlechange={(v) => (noteTitle = v)}
+      editorElement={editorEl}
+    />
+    <Editor
+      bind:value={noteBody}
+      onchange={(v) => (noteBody = v)}
+      placeholder="Start writing…"
+    />
+    <StatusBar wordCount={wordCount} syncStatus="synced" />
   </main>
 
 </div>
@@ -352,48 +321,6 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-  }
-
-  .editor-toolbar {
-    border-bottom: 1px solid var(--color-border);
-    padding: 8px 16px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-  }
-
-  .toolbar-placeholder {
-    font-size: 11px;
-    color: var(--color-text-muted);
-    opacity: 0.5;
-    font-style: italic;
-  }
-
-  .editor-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 48px 64px;
-    max-width: 760px;
-    margin: 0 auto;
-    width: 100%;
-  }
-
-  .editor-title {
-    font-family: var(--font-title);
-    font-size: 32px;
-    font-weight: 400;
-    color: var(--color-text);
-    margin: 0 0 24px;
-    outline: none;
-    border: none;
-  }
-
-  .editor-body {
-    font-family: var(--font-body);
-    font-size: 16px;
-    line-height: 1.7;
-    color: var(--color-text);
-    outline: none;
-    min-height: 400px;
+    position: relative;
   }
 </style>

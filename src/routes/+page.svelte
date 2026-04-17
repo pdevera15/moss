@@ -3,11 +3,9 @@
   import EditorHeader from '$lib/components/Editor/EditorHeader.svelte'
   import Editor from '$lib/components/Editor/Editor.svelte'
   import StatusBar from '$lib/components/Editor/StatusBar.svelte'
-  import CommandPalette from '$lib/components/Search/CommandPalette.svelte'
   import { activeNote, isLoading, loadError, loadNote, saveNote } from '$lib/stores/notes.svelte'
 
   let activeSection = $state<'notes' | 'tasks' | 'search'>('notes')
-  let paletteOpen   = $state(false)
 
   // Read-only derived values for the template and word count.
   // Handlers mutate activeNote.title / activeNote.body directly (NOT these
@@ -92,13 +90,6 @@
     </div>
 
     <div class="sidebar-footer">
-      <button class="nav-item" onclick={() => (paletteOpen = true)}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <span style="flex:1">Search</span>
-        <kbd class="sidebar-shortcut">⌘K</kbd>
-      </button>
       <button class="nav-item">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
@@ -158,8 +149,6 @@
   </main>
 
 </div>
-
-<CommandPalette bind:open={paletteOpen} />
 
 <style>
   /* ── Shell ──────────────────────────────────────────────────────────── */
@@ -269,17 +258,6 @@
     margin-top: auto;
     border-top: 1px solid var(--color-border);
     padding-top: 8px;
-  }
-
-  .sidebar-shortcut {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--color-text-faint);
-    background: var(--color-border);
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 1px 5px;
-    pointer-events: none;
   }
 
   /* ── Note list ──────────────────────────────────────────────────────── */

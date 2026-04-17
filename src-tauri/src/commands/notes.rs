@@ -64,13 +64,13 @@ pub fn get_or_create_default_note_inner(conn: &Connection) -> SqlResult<Note> {
     }
 }
 
-pub fn save_note_inner(conn: &Connection, id: &str, title: &str, body: &str) -> SqlResult<()> {
+pub fn save_note_inner(conn: &Connection, id: &str, title: &str, body: &str) -> Result<(), String> {
     let rows = conn.execute(
         "UPDATE notes SET title = ?1, body = ?2, updated_at = ?3 WHERE id = ?4",
         params![title, body, now_ms(), id],
-    )?;
+    ).map_err(|e| e.to_string())?;
     if rows == 0 {
-        return Err(rusqlite::Error::QueryReturnedNoRows);
+        return Err(format!("no note found with id '{id}'"));
     }
     Ok(())
 }
@@ -96,7 +96,7 @@ pub fn save_note(
     body: String,
 ) -> Result<(), String> {
     let conn = db.lock().map_err(|e| e.to_string())?;
-    save_note_inner(&conn, &id, &title, &body).map_err(|e| e.to_string())
+    save_note_inner(&conn, &id, &title, &body)
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────

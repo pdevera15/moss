@@ -1,16 +1,40 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import EditorHeader from '$lib/components/Editor/EditorHeader.svelte'
   import Editor from '$lib/components/Editor/Editor.svelte'
   import StatusBar from '$lib/components/Editor/StatusBar.svelte'
+  import CommandPalette from '$lib/components/Search/CommandPalette.svelte'
+  import { activeNote, isLoading, loadError, loadNote, saveNote } from '$lib/stores/notes.svelte'
 
   let activeSection = $state<'notes' | 'tasks' | 'search'>('notes')
-  let noteTitle = $state('Welcome to Moss')
-  let noteBody  = $state('Start writing here…')
+  let paletteOpen   = $state(false)
+
+  // Read-only derived values for the template and word count.
+  // Handlers mutate activeNote.title / activeNote.body directly (NOT these
+  // derived vars — $derived is read-only), which causes these to recompute.
+  let noteTitle = $derived(activeNote?.title ?? '')
+  let noteBody  = $derived(activeNote?.body  ?? '')
   let editorEl  = $state<HTMLElement | null>(null)
 
   let wordCount = $derived(
     noteBody.trim().split(/\s+/).filter(Boolean).length
   )
+
+  onMount(() => loadNote())
+
+  // Mutate activeNote locally so $derived values stay current between
+  // rapid title+body changes before the debounced save fires.
+  function handleTitleChange(value: string) {
+    if (!activeNote) return
+    activeNote.title = value
+    saveNote(activeNote.id, value, activeNote.body)
+  }
+
+  function handleBodyChange(value: string) {
+    if (!activeNote) return
+    activeNote.body = value
+    saveNote(activeNote.id, activeNote.title, value)
+  }
 </script>
 <div class="app-shell">
 
@@ -68,6 +92,13 @@
     </div>
 
     <div class="sidebar-footer">
+      <button class="nav-item" onclick={() => (paletteOpen = true)}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <span style="flex:1">Search</span>
+        <kbd class="sidebar-shortcut">⌘K</kbd>
+      </button>
       <button class="nav-item">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
@@ -94,32 +125,41 @@
       </button>
     </div>
 
-    <!-- Placeholder note cards -->
-    {#each ['Welcome to Moss', 'Getting started', 'My first note'] as title, i}
-      <button class="note-card" class:selected={i === 0}>
-        <p class="note-card-title">{title}</p>
-        <p class="note-card-preview">Start writing here…</p>
+    {#if activeNote}
+      <button class="note-card selected">
+        <p class="note-card-title">{activeNote.title || 'Untitled'}</p>
+        <p class="note-card-preview">{activeNote.body.slice(0, 60) || 'No content yet'}</p>
         <time class="note-card-date">Today</time>
       </button>
-    {/each}
+    {/if}
   </section>
 
   <!-- ── Editor (flex-1) ────────────────────────────────────────────── -->
   <main class="editor-pane" bind:this={editorEl}>
-    <EditorHeader
-      bind:title={noteTitle}
-      ontitlechange={(v) => (noteTitle = v)}
-      editorElement={editorEl}
-    />
-    <Editor
-      bind:value={noteBody}
-      onchange={(v) => (noteBody = v)}
-      placeholder="Start writing…"
-    />
-    <StatusBar wordCount={wordCount} syncStatus="synced" />
+    {#if isLoading}
+      <div class="editor-state">Loading…</div>
+    {:else if loadError}
+      <div class="editor-state editor-state--error">
+        Failed to load note: {loadError}
+      </div>
+    {:else}
+      <EditorHeader
+        title={noteTitle}
+        ontitlechange={handleTitleChange}
+        editorElement={editorEl}
+      />
+      <Editor
+        value={noteBody}
+        onchange={handleBodyChange}
+        placeholder="Start writing…"
+      />
+      <StatusBar wordCount={wordCount} syncStatus="synced" />
+    {/if}
   </main>
 
 </div>
+
+<CommandPalette bind:open={paletteOpen} />
 
 <style>
   /* ── Shell ──────────────────────────────────────────────────────────── */
@@ -231,6 +271,17 @@
     padding-top: 8px;
   }
 
+  .sidebar-shortcut {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-text-faint);
+    background: var(--color-border);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 1px 5px;
+    pointer-events: none;
+  }
+
   /* ── Note list ──────────────────────────────────────────────────────── */
   .note-list {
     width: 264px;
@@ -322,5 +373,19 @@
     flex-direction: column;
     overflow: hidden;
     position: relative;
+  }
+
+  .editor-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+  }
+
+  .editor-state--error {
+    color: var(--error);
   }
 </style>

@@ -3,35 +3,35 @@
   import EditorHeader from '$lib/components/Editor/EditorHeader.svelte'
   import Editor from '$lib/components/Editor/Editor.svelte'
   import StatusBar from '$lib/components/Editor/StatusBar.svelte'
-  import { activeNote, isLoading, loadError, loadNote, saveNote } from '$lib/stores/notes.svelte'
+  import { notesStore } from '$lib/stores/notes.svelte'
 
   let activeSection = $state<'notes' | 'tasks' | 'search'>('notes')
 
   // Read-only derived values for the template and word count.
   // Handlers mutate activeNote.title / activeNote.body directly (NOT these
   // derived vars — $derived is read-only), which causes these to recompute.
-  let noteTitle = $derived(activeNote?.title ?? '')
-  let noteBody  = $derived(activeNote?.body  ?? '')
+  let noteTitle = $derived(notesStore.activeNote?.title ?? '')
+  let noteBody  = $derived(notesStore.activeNote?.body  ?? '')
   let editorEl  = $state<HTMLElement | null>(null)
 
   let wordCount = $derived(
     noteBody.trim().split(/\s+/).filter(Boolean).length
   )
 
-  onMount(() => loadNote())
+  onMount(() => notesStore.loadNote())
 
   // Mutate activeNote locally so $derived values stay current between
   // rapid title+body changes before the debounced save fires.
   function handleTitleChange(value: string) {
-    if (!activeNote) return
-    activeNote.title = value
-    saveNote(activeNote.id, value, activeNote.body)
+    if (!notesStore.activeNote) return
+    notesStore.activeNote.title = value
+    notesStore.saveNote(notesStore.activeNote.id, value, notesStore.activeNote.body)
   }
 
   function handleBodyChange(value: string) {
-    if (!activeNote) return
-    activeNote.body = value
-    saveNote(activeNote.id, activeNote.title, value)
+    if (!notesStore.activeNote) return
+    notesStore.activeNote.body = value
+    notesStore.saveNote(notesStore.activeNote.id, notesStore.activeNote.title, value)
   }
 </script>
 <div class="app-shell">
@@ -116,10 +116,10 @@
       </button>
     </div>
 
-    {#if activeNote}
+    {#if notesStore.activeNote}
       <button class="note-card selected">
-        <p class="note-card-title">{activeNote.title || 'Untitled'}</p>
-        <p class="note-card-preview">{activeNote.body.slice(0, 60) || 'No content yet'}</p>
+        <p class="note-card-title">{notesStore.activeNote.title || 'Untitled'}</p>
+        <p class="note-card-preview">{notesStore.activeNote.body.slice(0, 60) || 'No content yet'}</p>
         <time class="note-card-date">Today</time>
       </button>
     {/if}
@@ -127,11 +127,11 @@
 
   <!-- ── Editor (flex-1) ────────────────────────────────────────────── -->
   <main class="editor-pane" bind:this={editorEl}>
-    {#if isLoading}
+    {#if notesStore.isLoading}
       <div class="editor-state">Loading…</div>
-    {:else if loadError}
+    {:else if notesStore.loadError}
       <div class="editor-state editor-state--error">
-        Failed to load note: {loadError}
+        Failed to load note: {notesStore.loadError}
       </div>
     {:else}
       <EditorHeader

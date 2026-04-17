@@ -65,10 +65,13 @@ pub fn get_or_create_default_note_inner(conn: &Connection) -> SqlResult<Note> {
 }
 
 pub fn save_note_inner(conn: &Connection, id: &str, title: &str, body: &str) -> SqlResult<()> {
-    conn.execute(
+    let rows = conn.execute(
         "UPDATE notes SET title = ?1, body = ?2, updated_at = ?3 WHERE id = ?4",
         params![title, body, now_ms(), id],
     )?;
+    if rows == 0 {
+        return Err(rusqlite::Error::QueryReturnedNoRows);
+    }
     Ok(())
 }
 
@@ -156,5 +159,12 @@ mod tests {
         save_note_inner(&conn, &note.id, "title", "body").unwrap();
         let updated = get_or_create_default_note_inner(&conn).unwrap();
         assert!(updated.updated_at > original_updated_at, "updated_at should increase");
+    }
+
+    #[test]
+    fn test_save_note_with_unknown_id_returns_error() {
+        let conn = test_db();
+        let result = save_note_inner(&conn, "nonexistent-id", "title", "body");
+        assert!(result.is_err(), "save with unknown id should return an error");
     }
 }

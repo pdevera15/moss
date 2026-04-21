@@ -1,29 +1,24 @@
-// src-tauri/src/lib.rs
 mod commands;
 
-use std::sync::Mutex;
-use rusqlite::Connection;
-use tauri::Manager;
+use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let migrations = vec![
+        Migration {
+            version: 1,
+            description: "initial_schema",
+            sql: include_str!("../migrations/0000_curly_patriot.sql"),
+            kind: MigrationKind::Up,
+        },
+    ];
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
-            let app_data_dir = app.path().app_data_dir()
-                .map_err(|e| format!("Failed to get app data dir: {e}"))?;
-            std::fs::create_dir_all(&app_data_dir)?;
-            let db_path = app_data_dir.join("moss.db");
-            let conn = Connection::open(&db_path)
-                .map_err(|e| format!("Failed to open database at {}: {e}", db_path.display()))?;
-            commands::notes::run_migrations(&conn)
-                .map_err(|e| format!("Migration failed: {e}"))?;
-            app.manage(Mutex::new(conn));
-            Ok(())
-        })
+        .plugin(SqlBuilder::default().add_migrations("sqlite:moss.db", migrations).build())
         .invoke_handler(tauri::generate_handler![
-            commands::notes::get_or_create_default_note,
-            commands::notes::save_note,
+            // CRUD handled by Drizzle ORM in TypeScript
+            // Future: FTS5 and embedding commands go here
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

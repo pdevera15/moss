@@ -30,4 +30,5 @@ export const tasks = sqliteTable('tasks', {
   position:       integer('position').notNull().default(0),
   created_at:     integer('created_at').notNull(),
   updated_at:     integer('updated_at').notNull(),
+  due_date:       integer('due_date'),
 })

@@ -11,14 +11,25 @@ pub fn run() {
             sql: include_str!("../migrations/0000_curly_patriot.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 2,
+            description: "add_tasks",
+            sql: include_str!("../migrations/0001_solid_maelstrom.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 3,
+            description: "add_fts5",
+            sql: include_str!("../migrations/0002_add_fts5.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(SqlBuilder::default().add_migrations("sqlite:moss.db", migrations).build())
         .invoke_handler(tauri::generate_handler![
-            // CRUD handled by Drizzle ORM in TypeScript
-            // Future: FTS5 and embedding commands go here
+            commands::notes::search_notes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

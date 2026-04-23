@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, untrack } from 'svelte'
 
   interface Props {
     value:    number | null
@@ -14,8 +14,9 @@
                   'July','August','September','October','November','December']
   const DOW    = ['Su','Mo','Tu','We','Th','Fr','Sa']
 
-  let viewYear  = $state(value ? new Date(value).getFullYear()  : new Date().getFullYear())
-  let viewMonth = $state(value ? new Date(value).getMonth()     : new Date().getMonth())
+  const _init   = untrack(() => value ? new Date(value) : new Date())
+  let viewYear  = $state(_init.getFullYear())
+  let viewMonth = $state(_init.getMonth())
   let popoverEl = $state<HTMLElement | null>(null)
   let posStyle  = $state('')
 
@@ -83,9 +84,10 @@
       const idx = all.indexOf(document.activeElement as HTMLButtonElement)
       if (idx === -1) {
         // Nothing focused yet — jump to selected day, today, or first cell
-        const selected = all.find(b => b.classList.contains('selected'))
-        const today    = all.find(b => b.classList.contains('today'))
-        ;(selected ?? today ?? all[0])?.focus()
+        const selected     = all.find(b => b.classList.contains('selected'))
+        const today        = all.find(b => b.classList.contains('today'))
+        const firstCurrent = all.find(b => !b.classList.contains('other'))
+        ;(selected ?? today ?? firstCurrent ?? all[0])?.focus()
         return
       }
       let next = idx

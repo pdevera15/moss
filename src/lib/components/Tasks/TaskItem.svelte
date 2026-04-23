@@ -21,8 +21,8 @@
   let chipEl        = $state<HTMLButtonElement | null>(null)
 
   let dueDateClass = $derived(
-    !task.dueDate               ? '' :
-    task.dueDate < todayStart() ? 'overdue' :
+    task.dueDate === null        ? '' :
+    task.dueDate < todayStart()  ? 'overdue' :
     task.dueDate === todayStart() ? 'due-today' : 'future'
   )
 
@@ -475,9 +475,9 @@
   }
   .due-chip:hover { opacity: 0.7; }
 
-  .due-chip.overdue   { color: var(--amber-500, #C4905A); }
-  .due-chip.due-today { color: var(--moss-500,  #5A7F54); }
-  .due-chip.future    { color: var(--text-2,    #6A6760); }
+  .due-chip.overdue   { color: var(--color-amber); }
+  .due-chip.due-today { color: var(--color-moss); }
+  .due-chip.future    { color: var(--color-text-muted); }
 
   .due-clear {
     font-size: 11px;
@@ -485,10 +485,10 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--text-3, #9A9790);
+    color: var(--color-text-faint);
     padding: 0 2px;
     opacity: 0.7;
     transition: opacity 0.1s;
   }
-  .due-clear:hover { opacity: 1; color: var(--text-1, #3A3830); }
+  .due-clear:hover { opacity: 1; color: var(--color-text); }
 </style>

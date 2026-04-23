@@ -15,6 +15,7 @@ export interface Task {
   done: boolean
   rolled: boolean
   subtasks: Subtask[]
+  dueDate: number | null
 }
 
 class TasksStore {
@@ -74,6 +75,7 @@ class TasksStore {
         done:     Boolean(r.done),
         rolled:   Boolean(r.rolled),
         subtasks: subsByParent.get(r.id) ?? [],
+        dueDate:  r.due_date ?? null,
       }))
     } catch (err) {
       console.error('Failed to load tasks:', err)
@@ -82,7 +84,7 @@ class TasksStore {
     }
   }
 
-  async addTask(title: string): Promise<string> {
+  async addTask(title: string, dueDate: number | null = null): Promise<string> {
     const id  = crypto.randomUUID()
     const now = Date.now()
     const pos = this.tasks.filter(t => !t.rolled).length
@@ -92,8 +94,9 @@ class TasksStore {
         id, title, done: false, rolled: false,
         scheduled_date: todayStart(), parent_id: null,
         position: pos, created_at: now, updated_at: now,
+        due_date: dueDate,
       })
-      this.tasks.push({ id, title, done: false, rolled: false, subtasks: [] })
+      this.tasks.push({ id, title, done: false, rolled: false, subtasks: [], dueDate })
     } catch (err) {
       console.error('Failed to add task:', err)
     }
@@ -145,6 +148,18 @@ class TasksStore {
       task.subtasks.push({ id, title, done: false })
     } catch (err) {
       console.error('Failed to add subtask:', err)
+    }
+  }
+
+  async updateDueDate(id: string, dueDate: number | null): Promise<void> {
+    const task = this.tasks.find(t => t.id === id)
+    if (!task) return
+    task.dueDate = dueDate
+    try {
+      const db = await getDb()
+      await db.update(tasks).set({ due_date: dueDate, updated_at: Date.now() }).where(eq(tasks.id, id))
+    } catch (err) {
+      console.error('Failed to update due date:', err)
     }
   }
 

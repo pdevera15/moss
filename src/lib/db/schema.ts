@@ -19,3 +19,15 @@ export const noteTags = sqliteTable('note_tags', {
 }, (t) => [
   primaryKey({ columns: [t.note_id, t.tag_id] }),
 ])
+
+export const tasks = sqliteTable('tasks', {
+  id:             text('id').primaryKey(),
+  title:          text('title').notNull(),
+  done:           integer('done', { mode: 'boolean' }).notNull().default(false),
+  rolled:         integer('rolled', { mode: 'boolean' }).notNull().default(false),
+  scheduled_date: integer('scheduled_date').notNull(),
+  parent_id:      text('parent_id'),
+  position:       integer('position').notNull().default(0),
+  created_at:     integer('created_at').notNull(),
+  updated_at:     integer('updated_at').notNull(),
+})

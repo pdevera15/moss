@@ -19,44 +19,68 @@ class BulletWidget extends WidgetType {
   eq(): boolean { return true }
 }
 
+class CheckboxWidget extends WidgetType {
+  constructor(readonly checked: boolean, readonly pos: number) { super() }
+  toDOM(view: EditorView): HTMLElement {
+    const span = document.createElement('span')
+    span.className = 'cm-moss-checkbox' + (this.checked ? ' cm-moss-checkbox-checked' : '')
+    span.setAttribute('aria-checked', String(this.checked))
+    span.setAttribute('role', 'checkbox')
+    span.addEventListener('mousedown', (e) => {
+      e.preventDefault()
+      view.dispatch({ changes: { from: this.pos, to: this.pos + 3, insert: this.checked ? '[ ]' : '[x]' } })
+    })
+    return span
+  }
+  eq(other: CheckboxWidget): boolean { return this.checked === other.checked && this.pos === other.pos }
+  ignoreEvent(e: Event) { return e.type === 'mousedown' }
+}
+
 const cls = {
-  h1:         Decoration.mark({ class: 'cm-moss-h1' }),
-  h2:         Decoration.mark({ class: 'cm-moss-h2' }),
-  h3:         Decoration.mark({ class: 'cm-moss-h3' }),
+  h1:         Decoration.line({ class: 'cm-moss-h1' }),
+  h2:         Decoration.line({ class: 'cm-moss-h2' }),
+  h3:         Decoration.line({ class: 'cm-moss-h3' }),
   bold:       Decoration.mark({ class: 'cm-moss-bold' }),
   italic:     Decoration.mark({ class: 'cm-moss-italic' }),
   code:       Decoration.mark({ class: 'cm-moss-code' }),
   link:       Decoration.mark({ class: 'cm-moss-link' }),
-  blockquote: Decoration.mark({ class: 'cm-moss-blockquote' }),
+  blockquote: Decoration.line({ class: 'cm-moss-blockquote' }),
   marker:     Decoration.mark({ class: 'cm-moss-marker' }),
+  tag:        Decoration.mark({ class: 'cm-moss-tag' }),
   hidden:     Decoration.replace({}),
+  fencedLine: Decoration.line({ class: 'cm-moss-fenced-line' }),
 }
 
-function getCursorLines(view: EditorView): Set<number> {
-  const lines = new Set<number>()
-  for (const range of view.state.selection.ranges) {
-    const fromLine = view.state.doc.lineAt(range.from).number
-    const toLine   = view.state.doc.lineAt(range.to).number
-    for (let l = fromLine; l <= toLine; l++) lines.add(l)
-  }
-  return lines
-}
+// Matches #tag and #nested/tag — must start with a letter, no spaces.
+// A leading space or start-of-line + space before # is fine; what matters
+// is that the character immediately after # is not a space (which would
+// make it a heading mark instead).
+const TAG_RE = /(?<![&\w])#(\p{L}[\p{L}\p{N}_\-/]*)/gu
 
 function buildDecorations(view: EditorView): DecorationSet {
-  const builder = new RangeSetBuilder<Decoration>()
   const { state } = view
-  const cursorLines = getCursorLines(view)
 
-  function onCursor(pos: number): boolean {
-    return cursorLines.has(state.doc.lineAt(pos).number)
+  // Hide markers unless the cursor is on the same line as the mark.
+  function onCursorLine(pos: number): boolean {
+    const lineNum = state.doc.lineAt(pos).number
+    for (const range of state.selection.ranges) {
+      const fromLine = state.doc.lineAt(range.from).number
+      const toLine   = state.doc.lineAt(range.to).number
+      if (lineNum >= fromLine && lineNum <= toLine) return true
+    }
+    return false
   }
 
+  // Collect all entries before adding to the builder.
+  // The syntax tree visits parents before children. When a parent node (e.g.
+  // StrongEmphasis) and its child (EmphasisMark) share the same `from` position,
+  // the parent's Decoration.mark (startSide=0) is collected before the child's
+  // Decoration.replace (startSide=-1). RangeSetBuilder requires ascending
+  // (from, startSide) order, so we sort after collecting.
+  const entries: Array<[number, number, Decoration]> = []
+
   function hideOrMute(from: number, to: number): void {
-    if (onCursor(from)) {
-      builder.add(from, to, cls.marker)
-    } else {
-      builder.add(from, to, cls.hidden)
-    }
+    if (!onCursorLine(from)) entries.push([from, to, cls.hidden])
   }
 
   syntaxTree(state).iterate({
@@ -66,38 +90,87 @@ function buildDecorations(view: EditorView): DecorationSet {
       const { from, to, name } = node
 
       switch (name) {
-        case 'ATXHeading1': builder.add(from, to, cls.h1); break
-        case 'ATXHeading2': builder.add(from, to, cls.h2); break
-        case 'ATXHeading3': builder.add(from, to, cls.h3); break
+        case 'ATXHeading1': entries.push([from, from, cls.h1]); break
+        case 'ATXHeading2': entries.push([from, from, cls.h2]); break
+        case 'ATXHeading3': entries.push([from, from, cls.h3]); break
         case 'HeaderMark': {
           // +1 to include the space after #, clamped to line end
           const lineEnd = state.doc.lineAt(from).to
           hideOrMute(from, Math.min(to + 1, lineEnd))
           break
         }
-        case 'StrongEmphasis': builder.add(from, to, cls.bold); break
-        case 'Emphasis':       builder.add(from, to, cls.italic); break
+        case 'StrongEmphasis': if (!onCursorLine(from)) entries.push([from, to, cls.bold]); break
+        case 'Emphasis':       if (!onCursorLine(from)) entries.push([from, to, cls.italic]); break
         case 'EmphasisMark':   hideOrMute(from, to); break
-        case 'InlineCode':     builder.add(from, to, cls.code); break
-        case 'CodeMark':       hideOrMute(from, to); break
-        case 'Link':           builder.add(from, to, cls.link); break
-        case 'LinkMark':       hideOrMute(from, to); break
-        case 'URL':            hideOrMute(from, to); break
-        case 'ListMark': {
-          if (onCursor(from)) {
-            builder.add(from, to, cls.marker)
-          } else {
-            const lineEnd = state.doc.lineAt(from).to
-            builder.add(from, Math.min(to + 1, lineEnd), Decoration.replace({ widget: new BulletWidget() }))
+        case 'InlineCode':     if (!onCursorLine(from)) entries.push([from, to, cls.code]); break
+        case 'CodeMark':       if (to - from < 3) hideOrMute(from, to); break
+        case 'FencedCode': {
+          const firstLine = state.doc.lineAt(from).number
+          const lastLine  = state.doc.lineAt(to).number
+          for (let ln = firstLine; ln <= lastLine; ln++) {
+            const line = state.doc.line(ln)
+            entries.push([line.from, line.from, cls.fencedLine])
           }
           break
         }
-        case 'Blockquote': builder.add(from, to, cls.blockquote); break
+        case 'Link':     if (!onCursorLine(from)) entries.push([from, to, cls.link]); break
+        case 'LinkMark': {
+          // Don't hide [ or ] that belong to a task marker pattern [ ] / [x]
+          const ch = state.doc.sliceString(from, to)
+          if (ch === '[') {
+            const snip = state.doc.sliceString(from, from + 3)
+            if (snip === '[ ]' || snip === '[x]' || snip === '[X]') break
+          } else if (ch === ']') {
+            const snip = state.doc.sliceString(Math.max(0, from - 2), from + 1)
+            if (snip === '[ ]' || snip === '[x]' || snip === '[X]') break
+          }
+          hideOrMute(from, to)
+          break
+        }
+        case 'URL':            hideOrMute(from, to); break
+        case 'ListMark': {
+          if (onCursorLine(from)) {
+            entries.push([from, to, cls.marker])
+          } else {
+            const lineEnd = state.doc.lineAt(from).to
+            entries.push([from, Math.min(to + 1, lineEnd), Decoration.replace({ widget: new BulletWidget() })])
+          }
+          break
+        }
+        case 'Blockquote': entries.push([from, from, cls.blockquote]); break
         case 'QuoteMark':  hideOrMute(from, to); break
       }
     },
   })
 
+  // Scan visible lines for #tag tokens (# immediately followed by a letter).
+  const { from: vpFrom, to: vpTo } = view.viewport
+  const visibleText = state.doc.sliceString(vpFrom, vpTo)
+  TAG_RE.lastIndex = 0
+  for (const match of visibleText.matchAll(TAG_RE)) {
+    const from = vpFrom + match.index!
+    const to   = from + match[0].length
+    entries.push([from, to, cls.tag])
+  }
+
+  // Scan for [ ] / [x] checkboxes at line start (with optional leading whitespace or `- `).
+  const CHECKBOX_RE = /^[ \t]*(?:[-*+] )?(\[[ xX]\])/gm
+  CHECKBOX_RE.lastIndex = 0
+  for (const match of visibleText.matchAll(CHECKBOX_RE)) {
+    const markerFrom = vpFrom + match.index! + match[0].length - 3
+    const markerTo   = markerFrom + 3
+    const checked    = match[1] !== '[ ]'
+    if (!onCursorLine(markerFrom)) {
+      entries.push([markerFrom, markerTo, Decoration.replace({ widget: new CheckboxWidget(checked, markerFrom) })])
+    }
+  }
+
+  entries.sort((a, b) => a[0] - b[0] || a[2].startSide - b[2].startSide)
+
+  const builder = new RangeSetBuilder<Decoration>()
+  for (const [from, to, dec] of entries) {
+    builder.add(from, to, dec)
+  }
   return builder.finish()
 }
 

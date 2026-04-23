@@ -11,7 +11,7 @@ function debounce<T extends (...args: never[]) => void>(fn: T, ms: number): T & 
 }
 
 function extractTags(body: string): string[] {
-  const matches = body.match(/#[a-zA-Z]\w*/g) ?? []
+  const matches = body.match(/#\p{L}[\p{L}\p{N}_]*/gu) ?? []
   return [...new Set(matches.map(t => t.toLowerCase()))]
 }
 

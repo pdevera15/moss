@@ -3,9 +3,23 @@
   import EditorHeader from '$lib/components/Editor/EditorHeader.svelte'
   import Editor from '$lib/components/Editor/Editor.svelte'
   import StatusBar from '$lib/components/Editor/StatusBar.svelte'
+  import NoteList from '$lib/components/NoteList/NoteList.svelte'
+  import TaskList from '$lib/components/Tasks/TaskList.svelte'
   import { notesStore } from '$lib/stores/notes.svelte'
+  import { tasksStore } from '$lib/stores/tasks.svelte'
+  import { getTagColors } from '$lib/utils/tagColors'
+  import SearchPanel from '$lib/components/Search/SearchPanel.svelte'
+  import CommandPalette from '$lib/components/Search/CommandPalette.svelte'
 
-  let activeSection = $state<'notes' | 'tasks' | 'search'>('notes')
+  let activeSection  = $state<'notes' | 'tasks' | 'search'>('notes')
+  let paletteOpen    = $state(false)
+
+  function openPalette() { paletteOpen = true }
+
+  function handleSearchSelect(note: import('$core/types').Note) {
+    notesStore.selectNote(note)
+    activeSection = 'notes'
+  }
 
   // Read-only derived values for the template and word count.
   // Handlers mutate activeNote.title / activeNote.body directly (NOT these
@@ -18,7 +32,19 @@
     noteBody.trim().split(/\s+/).filter(Boolean).length
   )
 
-  onMount(() => notesStore.loadNote())
+  onMount(() => {
+    notesStore.loadNote()
+    tasksStore.load()
+
+    function onGlobalKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        paletteOpen = !paletteOpen
+      }
+    }
+    window.addEventListener('keydown', onGlobalKey)
+    return () => window.removeEventListener('keydown', onGlobalKey)
+  })
 
   // Mutate activeNote locally so $derived values stay current between
   // rapid title+body changes before the debounced save fires.
@@ -61,9 +87,12 @@
         class:active={activeSection === 'tasks'}
         onclick={() => (activeSection = 'tasks')}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="9 11 12 14 22 4"/>
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="3.5" cy="4.5" r="1.5" stroke="currentColor" stroke-width="1.4"/>
+          <rect x="6.5" y="3.75" width="7" height="1.5" rx="0.75" fill="currentColor" opacity="0.65"/>
+          <circle cx="3.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.4"/>
+          <rect x="6.5" y="8.75" width="5" height="1.5" rx="0.75" fill="currentColor" opacity="0.65"/>
+          <path d="M2.5 13.5L4 15l2.5-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         Tasks
       </button>
@@ -83,10 +112,20 @@
 
     <div class="sidebar-tags">
       <p class="tags-heading">Tags</p>
-      <!-- placeholder -->
-      <span class="tag">#journal</span>
-      <span class="tag">#work</span>
-      <span class="tag">#ideas</span>
+      {#each notesStore.tags as tag}
+        {@const c = getTagColors(tag)}
+        <button
+          class="tag"
+          class:active={notesStore.activeTag === tag}
+          onclick={() => { notesStore.setActiveTag(tag); activeSection = 'notes'; }}
+        >
+          <span class="tag-dot" style:background={c.dot}></span>
+          {tag}
+        </button>
+      {/each}
+      {#if notesStore.tags.length === 0}
+        <span class="tags-empty">No tags yet</span>
+      {/if}
     </div>
 
     <div class="sidebar-footer">
@@ -101,54 +140,65 @@
     </div>
   </aside>
 
-  <!-- ── Note list (264px) ───────────────────────────────────────────── -->
-  <section class="note-list">
-    <div class="note-list-header">
-      <h2 class="note-list-title">
-        {#if activeSection === 'notes'}All Notes
-        {:else if activeSection === 'tasks'}Tasks
-        {:else}Search{/if}
-      </h2>
-      <button class="icon-btn" title="New note">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </button>
-    </div>
+  {#if activeSection === 'tasks'}
+    <!-- ── Tasks view ─────────────────────────────────────────────────── -->
+    <TaskList />
+  {:else}
+    <!-- ── Note list / Search panel (264px) ────────────────────────────── -->
+    <section class="note-list">
+      {#if activeSection === 'search'}
+        <SearchPanel
+          notes={notesStore.notes}
+          tags={notesStore.tags}
+          onselect={handleSearchSelect}
+        />
+      {:else}
+        <NoteList
+          notes={notesStore.filteredNotes}
+          activeId={notesStore.activeNote?.id ?? null}
+          activeTag={notesStore.activeTag}
+          onselect={(note) => notesStore.selectNote(note)}
+          oncreate={() => notesStore.createNote()}
+          ondelete={(id) => notesStore.deleteNote(id)}
+        />
+      {/if}
+    </section>
 
-    {#if notesStore.activeNote}
-      <button class="note-card selected">
-        <p class="note-card-title">{notesStore.activeNote.title || 'Untitled'}</p>
-        <p class="note-card-preview">{notesStore.activeNote.body.slice(0, 60) || 'No content yet'}</p>
-        <time class="note-card-date">Today</time>
-      </button>
-    {/if}
-  </section>
-
-  <!-- ── Editor (flex-1) ────────────────────────────────────────────── -->
-  <main class="editor-pane" bind:this={editorEl}>
-    {#if notesStore.isLoading}
-      <div class="editor-state">Loading…</div>
-    {:else if notesStore.loadError}
-      <div class="editor-state editor-state--error">
-        Failed to load note: {notesStore.loadError}
-      </div>
-    {:else}
-      <EditorHeader
-        title={noteTitle}
-        ontitlechange={handleTitleChange}
-        editorElement={editorEl}
-      />
-      <Editor
-        value={noteBody}
-        onchange={handleBodyChange}
-        placeholder="Start writing…"
-      />
-      <StatusBar wordCount={wordCount} syncStatus="synced" />
-    {/if}
-  </main>
+    <!-- ── Editor (flex-1) ────────────────────────────────────────────── -->
+    <main class="editor-pane" bind:this={editorEl}>
+      {#if notesStore.isLoading}
+        <div class="editor-state">Loading…</div>
+      {:else if notesStore.loadError}
+        <div class="editor-state editor-state--error">
+          Failed to load note: {notesStore.loadError}
+        </div>
+      {:else}
+        {#key notesStore.activeNote?.id}
+          <EditorHeader
+            title={noteTitle}
+            ontitlechange={handleTitleChange}
+            editorElement={editorEl}
+          />
+          <Editor
+            value={noteBody}
+            onchange={handleBodyChange}
+            placeholder="Start writing…"
+          />
+        {/key}
+        <StatusBar wordCount={wordCount} syncStatus="synced" />
+      {/if}
+    </main>
+  {/if}
 
 </div>
+
+<CommandPalette
+  notes={notesStore.notes}
+  tags={notesStore.tags}
+  open={paletteOpen}
+  onselect={handleSearchSelect}
+  onclose={() => (paletteOpen = false)}
+/>
 
 <style>
   /* ── Shell ──────────────────────────────────────────────────────────── */
@@ -245,14 +295,39 @@
   }
 
   .tag {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
     padding: 4px 8px;
+    font: inherit;
     font-size: 12px;
-    color: var(--color-text-muted);
+    color: var(--color-text);
     border-radius: var(--radius-sm);
     cursor: pointer;
+    transition: background 120ms, color 120ms;
   }
 
-  .tag:hover { background: var(--color-border); color: var(--color-text); }
+  .tag:hover  { background: var(--color-border); color: var(--color-text); }
+  .tag.active { background: var(--color-moss-dark); color: #fff; font-weight: 500; }
+
+  .tag-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .tags-empty {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    opacity: 0.6;
+    padding: 2px 8px;
+  }
 
   .sidebar-footer {
     margin-top: auto;
@@ -267,81 +342,7 @@
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--color-border);
-    overflow-y: auto;
-  }
-
-  .note-list-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 16px 8px;
-    position: sticky;
-    top: 0;
-    background: var(--color-bg);
-    z-index: 1;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .note-list-title {
-    font-size: 13px;
-    font-weight: 600;
-    margin: 0;
-    color: var(--color-text);
-  }
-
-  .icon-btn {
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    color: var(--color-text-muted);
-    padding: 4px;
-    border-radius: var(--radius-sm);
-    display: grid;
-    place-items: center;
-    transition: background 120ms, color 120ms;
-  }
-
-  .icon-btn:hover { background: var(--color-border); color: var(--color-text); }
-
-  .note-card {
-    display: block;
-    width: 100%;
-    text-align: left;
-    border: none;
-    background: transparent;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--color-border);
-    cursor: pointer;
-    font: inherit;
-    transition: background 120ms;
-  }
-
-  .note-card:hover    { background: var(--color-surface); }
-  .note-card.selected { background: color-mix(in srgb, var(--color-moss) 8%, var(--color-bg)); }
-
-  .note-card-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--color-text);
-    margin: 0 0 4px;
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .note-card-preview {
-    font-size: 12px;
-    color: var(--color-text-muted);
-    margin: 0 0 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .note-card-date {
-    font-size: 11px;
-    color: var(--color-text-muted);
-    opacity: 0.7;
   }
 
   /* ── Editor pane ────────────────────────────────────────────────────── */

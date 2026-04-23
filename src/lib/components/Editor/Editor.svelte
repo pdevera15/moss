@@ -7,7 +7,7 @@
   import { languages } from '@codemirror/language-data'
   import { getMossTheme, buildMossTheme, themeCompartment } from '$lib/editor/mossTheme'
   import { markdownDecorations } from '$lib/editor/markdownDecorations'
-  import { floatingToolbar } from '$lib/editor/floatingToolbar'
+  import { floatingToolbar, markdownKeymap } from '$lib/editor/floatingToolbar'
 
   let {
     value = $bindable(''),
@@ -21,13 +21,29 @@
 
   let container: HTMLDivElement
   let view: EditorView
+  let isExternalUpdate = false
 
-  function debounce<T extends (...args: never[]) => void>(fn: T, ms: number): T {
+  function debounce<T extends (...args: never[]) => void>(fn: T, ms: number): T & { cancel(): void } {
     let timer: ReturnType<typeof setTimeout>
-    return ((...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms) }) as T
+    const d = ((...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms) }) as T & { cancel(): void }
+    d.cancel = () => clearTimeout(timer)
+    return d
   }
 
   const emitChange = debounce((v: string) => onchange?.(v), 300)
+
+  // Sync external value changes (e.g. switching notes) into CodeMirror.
+  // Cancel any pending debounced emit so stale content can't overwrite the new note.
+  $effect(() => {
+    if (!view) return
+    const current = view.state.doc.toString()
+    if (value !== current) {
+      emitChange.cancel()
+      isExternalUpdate = true
+      view.dispatch({ changes: { from: 0, to: current.length, insert: value } })
+      isExternalUpdate = false
+    }
+  })
 
   onMount(() => {
     const darkMQ = window.matchMedia('(prefers-color-scheme: dark)')
@@ -40,11 +56,11 @@
         markdownDecorations,
         floatingToolbar,
         history(),
-        keymap.of([...defaultKeymap, ...historyKeymap]),
+        keymap.of([...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
         EditorView.lineWrapping,
         cmPlaceholder(placeholder),
         EditorView.updateListener.of(update => {
-          if (update.docChanged) {
+          if (update.docChanged && !isExternalUpdate) {
             const newValue = update.state.doc.toString()
             value = newValue
             emitChange(newValue)
@@ -66,7 +82,10 @@
     return () => darkMQ.removeEventListener('change', onColorSchemeChange)
   })
 
-  onDestroy(() => view?.destroy())
+  onDestroy(() => {
+    emitChange.cancel()
+    view?.destroy()
+  })
 </script>
 
 <div class="editor-host" bind:this={container}></div>
@@ -131,6 +150,51 @@
   :global(.cm-moss-bullet) {
     color: var(--color-moss-light);
     margin-right: 4px;
+  }
+  :global(.cm-moss-fenced-line) {
+    background: var(--color-surface);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    display: block;
+  }
+
+  :global(.cm-moss-checkbox) {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--color-text-muted);
+    border-radius: 3px;
+    cursor: pointer;
+    vertical-align: middle;
+    margin-right: 6px;
+    position: relative;
+    top: -1px;
+    flex-shrink: 0;
+  }
+  :global(.cm-moss-checkbox-checked) {
+    background: var(--color-moss);
+    border-color: var(--color-moss);
+  }
+  :global(.cm-moss-checkbox-checked::after) {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px;
+    height: 7px;
+    border: 1.5px solid #fff;
+    border-top: none;
+    border-left: none;
+    transform: translate(-50%, -60%) rotate(45deg);
+  }
+
+  :global(.cm-moss-tag) {
+    color: var(--color-moss-dark);
+    background: var(--color-moss-tint);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    border-radius: 4px;
+    padding: 1px 5px;
   }
 
   /* ── Floating toolbar ─────────────────────────────────────────────── */

@@ -1,5 +1,6 @@
 import { ViewPlugin, ViewUpdate, EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
+import type { KeyBinding } from '@codemirror/view'
 
 type FormatAction = {
   label: string
@@ -17,7 +18,7 @@ const ACTIONS: FormatAction[] = [
   { label: '❝',  title: 'Blockquote',  wrap: ['> ', '']      },
 ]
 
-function applyWrap(view: EditorView, before: string, after: string): void {
+export function applyWrap(view: EditorView, before: string, after: string): void {
   view.dispatch(
     view.state.changeByRange(range => ({
       changes: [
@@ -74,11 +75,17 @@ function positionToolbar(bar: HTMLElement, view: EditorView): void {
   bar.style.transform = 'translateX(-50%)'
 }
 
+export const markdownKeymap: KeyBinding[] = [
+  { key: 'Mod-b', run: (view) => { applyWrap(view, '**', '**'); return true } },
+  { key: 'Mod-i', run: (view) => { applyWrap(view, '_', '_');   return true } },
+  { key: 'Mod-k', run: (view) => { applyWrap(view, '[', '](url)'); return true } },
+]
+
 export const floatingToolbar = ViewPlugin.fromClass(
   class {
     toolbar: HTMLElement | null = null
 
-    constructor(private view: EditorView) {}
+    constructor(_view: EditorView) {}
 
     update(update: ViewUpdate) {
       const sel = update.view.state.selection.main
@@ -96,7 +103,11 @@ export const floatingToolbar = ViewPlugin.fromClass(
         update.view.dom.appendChild(this.toolbar)
       }
 
-      positionToolbar(this.toolbar, update.view)
+      // Defer layout reads (coordsAtPos, getBoundingClientRect) until after
+      // the current update cycle has flushed to the DOM.
+      const toolbar = this.toolbar
+      const view = update.view
+      requestAnimationFrame(() => positionToolbar(toolbar, view))
     }
 
     destroy() {

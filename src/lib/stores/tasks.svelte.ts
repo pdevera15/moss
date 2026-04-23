@@ -46,7 +46,6 @@ class TasksStore {
     this.isLoading = true
     try {
       const db  = await getDb()
-      const today = todayStart()
 
       // All parent tasks for today (and any rolled from previous days)
       const rows = await db

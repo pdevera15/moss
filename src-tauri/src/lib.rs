@@ -23,6 +23,12 @@ pub fn run() {
             sql: include_str!("../migrations/0002_add_fts5.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "add_due_date",
+            sql: include_str!("../migrations/0003_fair_paladin.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

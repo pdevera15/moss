@@ -93,6 +93,9 @@
       else if (e.key === 'ArrowLeft') next = idx - 1
       else if (e.key === 'ArrowDown') next = idx + 7
       else                            next = idx - 7
+      // Skip .other (adjacent-month) cells — step further in same direction
+      const step = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1
+      while (next >= 0 && next < all.length && all[next].classList.contains('other')) next += step
       if (next >= 0 && next < all.length) all[next].focus()
       return
     }

@@ -1,13 +1,14 @@
 class SyncStore {
   status = $state<'synced' | 'syncing' | 'offline'>('synced')
 
+  private _offlineHandler = () => { this.status = 'offline' }
+  private _onlineHandler  = () => { if (this.status !== 'syncing') this.status = 'synced' }
+
   constructor() {
     if (typeof window !== 'undefined') {
       this.status = navigator.onLine ? 'synced' : 'offline'
-      window.addEventListener('offline', () => { this.status = 'offline' })
-      window.addEventListener('online',  () => {
-        if (this.status !== 'syncing') this.status = 'synced'
-      })
+      window.addEventListener('offline', this._offlineHandler)
+      window.addEventListener('online',  this._onlineHandler)
     }
   }
 
@@ -17,6 +18,13 @@ class SyncStore {
 
   setSynced() {
     if (this.status !== 'offline') this.status = 'synced'
+  }
+
+  destroy() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('offline', this._offlineHandler)
+      window.removeEventListener('online',  this._onlineHandler)
+    }
   }
 }
 

@@ -7,6 +7,7 @@
   import TaskList from '$lib/components/Tasks/TaskList.svelte'
   import { notesStore } from '$lib/stores/notes.svelte'
   import { tasksStore } from '$lib/stores/tasks.svelte'
+  import { syncStore } from '$lib/stores/sync.svelte'
   import { getTagColors } from '$lib/utils/tagColors'
   import SearchPanel from '$lib/components/Search/SearchPanel.svelte'
   import CommandPalette from '$lib/components/Search/CommandPalette.svelte'
@@ -32,6 +33,14 @@
     noteBody.trim().split(/\s+/).filter(Boolean).length
   )
 
+  // DEV ONLY — remove after testing FTS5 search
+  async function seedDev() {
+    const { seedTestData } = await import('$lib/db/seed')
+    await seedTestData()
+    await notesStore.loadNote()
+    alert('10 test notes inserted. Try searching for: rust, typescript, ramen, tokyo, sqlite')
+  }
+
   onMount(() => {
     notesStore.loadNote()
     tasksStore.load()
@@ -50,12 +59,14 @@
   // rapid title+body changes before the debounced save fires.
   function handleTitleChange(value: string) {
     if (!notesStore.activeNote) return
+    syncStore.setSyncing()
     notesStore.activeNote.title = value
     notesStore.saveNote(notesStore.activeNote.id, value, notesStore.activeNote.body)
   }
 
   function handleBodyChange(value: string) {
     if (!notesStore.activeNote) return
+    syncStore.setSyncing()
     notesStore.activeNote.body = value
     notesStore.saveNote(notesStore.activeNote.id, notesStore.activeNote.title, value)
   }
@@ -185,7 +196,7 @@
             placeholder="Start writing…"
           />
         {/key}
-        <StatusBar wordCount={wordCount} syncStatus="synced" />
+        <StatusBar wordCount={wordCount} syncStatus={syncStore.status} />
       {/if}
     </main>
   {/if}
@@ -199,6 +210,11 @@
   onselect={handleSearchSelect}
   onclose={() => (paletteOpen = false)}
 />
+
+<!-- DEV ONLY — remove after testing FTS5 search -->
+{#if import.meta.env.DEV}
+  <button class="seed-btn" onclick={seedDev}>Seed test notes</button>
+{/if}
 
 <style>
   /* ── Shell ──────────────────────────────────────────────────────────── */
@@ -367,4 +383,21 @@
   .editor-state--error {
     color: var(--error);
   }
+  /* DEV ONLY */
+  .seed-btn {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    z-index: 999;
+    padding: 6px 12px;
+    background: var(--color-moss, #5A7F54);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    opacity: 0.8;
+  }
+  .seed-btn:hover { opacity: 1; }
 </style>

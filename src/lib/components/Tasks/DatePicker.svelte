@@ -154,9 +154,9 @@
 <style>
   .dp {
     position: fixed;
-    background: var(--bg, #FAFAF8);
-    border: 1px solid var(--border-1, #DDDDD8);
-    border-radius: var(--r-lg, 12px);
+    background: var(--color-bg, #FAFAF8);
+    border: 1px solid var(--color-border, #DDDDD8);
+    border-radius: var(--radius-lg, 12px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.12);
     padding: 12px;
     width: 224px;
@@ -175,7 +175,7 @@
     font-size: 12px;
     font-weight: 600;
     font-family: var(--font-mono, monospace);
-    color: var(--text-0, #1E1C18);
+    color: var(--color-text, #1E1C18);
   }
 
   .dp-nav {
@@ -183,13 +183,13 @@
     border: none;
     cursor: pointer;
     font-size: 16px;
-    color: var(--text-2, #6A6760);
+    color: var(--color-text-muted, #6A6760);
     padding: 2px 6px;
-    border-radius: var(--r-sm, 4px);
+    border-radius: var(--radius-sm, 4px);
     line-height: 1;
     transition: background 0.1s, color 0.1s;
   }
-  .dp-nav:hover { background: var(--surface-2, #E8E8E5); color: var(--text-0, #1E1C18); }
+  .dp-nav:hover { background: var(--color-surface-2, #E8E8E5); color: var(--color-text, #1E1C18); }
 
   .dp-grid {
     display: grid;
@@ -200,7 +200,7 @@
   .dp-dow {
     font-size: 10px;
     font-family: var(--font-mono, monospace);
-    color: var(--text-3, #9A9790);
+    color: var(--color-text-muted, #9A9790);
     text-align: center;
     padding-bottom: 4px;
   }
@@ -208,32 +208,32 @@
   .dp-day {
     width: 28px;
     height: 28px;
-    border-radius: var(--r-sm, 4px);
+    border-radius: var(--radius-sm, 4px);
     border: none;
     background: none;
     cursor: pointer;
     font-size: 12px;
     font-family: var(--font-mono, monospace);
-    color: var(--text-0, #1E1C18);
+    color: var(--color-text, #1E1C18);
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background 0.1s;
     padding: 0;
   }
-  .dp-day:hover:not(.selected):not(.other) { background: var(--surface-2, #E8E8E5); }
+  .dp-day:hover:not(.selected):not(.other) { background: var(--color-surface-2, #E8E8E5); }
 
-  .dp-day.other         { color: var(--text-4, #C0BDB6); cursor: default; }
+  .dp-day.other         { color: var(--color-text-faint, #C0BDB6); cursor: default; }
   .dp-day.other:hover   { background: none; }
 
   .dp-day.today {
-    box-shadow: inset 0 0 0 1.5px var(--moss-500, #5A7F54);
-    color: var(--moss-500, #5A7F54);
+    box-shadow: inset 0 0 0 1.5px var(--color-moss, #5A7F54);
+    color: var(--color-moss, #5A7F54);
     font-weight: 600;
   }
 
   .dp-day.selected {
-    background: var(--moss-500, #5A7F54);
+    background: var(--color-moss, #5A7F54);
     color: white;
     font-weight: 600;
     box-shadow: none;

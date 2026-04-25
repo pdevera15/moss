@@ -497,12 +497,12 @@ let platform = $state<Platform>(detectPlatform())
    ✅ Keyboard shortcuts (⌘B, ⌘I, ⌘K)
    ✅ Dark/light mode auto-switch
 ✅ Tag system — #hashtag extraction from note body
-⬜ Full-text search — SQLite FTS5
+✅ Full-text search — SQLite FTS5
 ✅ Note list with search, filter by tag
    ✅ Inline search panel (Design B) — replaces note list column, scope chips, amber highlight
    ✅ Command palette ⌘K (Design A) — overlay, keyboard nav, recent searches, quick filters
 ✅ Daily tasks with subtasks and automatic rollover
-⬜ Sync status indicator (synced/syncing/offline)
+✅ Sync status indicator (synced/syncing/offline)
 ```
 
 ### Phase 3 — Smart Features

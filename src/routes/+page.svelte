@@ -33,14 +33,6 @@
     noteBody.trim().split(/\s+/).filter(Boolean).length
   )
 
-  // DEV ONLY — remove after testing FTS5 search
-  async function seedDev() {
-    const { seedTestData } = await import('$lib/db/seed')
-    await seedTestData()
-    await notesStore.loadNote()
-    alert('10 test notes inserted. Try searching for: rust, typescript, ramen, tokyo, sqlite')
-  }
-
   onMount(() => {
     notesStore.loadNote()
     tasksStore.load()
@@ -211,11 +203,6 @@
   onclose={() => (paletteOpen = false)}
 />
 
-<!-- DEV ONLY — remove after testing FTS5 search -->
-{#if import.meta.env.DEV}
-  <button class="seed-btn" onclick={seedDev}>Seed test notes</button>
-{/if}
-
 <style>
   /* ── Shell ──────────────────────────────────────────────────────────── */
   .app-shell {
@@ -383,21 +370,4 @@
   .editor-state--error {
     color: var(--error);
   }
-  /* DEV ONLY */
-  .seed-btn {
-    position: fixed;
-    bottom: 12px;
-    right: 12px;
-    z-index: 999;
-    padding: 6px 12px;
-    background: var(--color-moss, #5A7F54);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    font-size: 11px;
-    font-family: var(--font-mono);
-    cursor: pointer;
-    opacity: 0.8;
-  }
-  .seed-btn:hover { opacity: 1; }
 </style>

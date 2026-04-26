@@ -1,6 +1,10 @@
 mod commands;
 
+use std::sync::{Arc, Mutex};
+use fastembed::{TextEmbedding, InitOptions, EmbeddingModel};
 use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
+
+pub struct EmbeddingState(pub Arc<Mutex<Option<TextEmbedding>>>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -37,7 +41,26 @@ pub fn run() {
         },
     ];
 
+    let embedding_arc: Arc<Mutex<Option<TextEmbedding>>> = Arc::new(Mutex::new(None));
+    let embedding_arc_init = Arc::clone(&embedding_arc);
+
     tauri::Builder::default()
+        .manage(EmbeddingState(Arc::clone(&embedding_arc)))
+        .setup(move |_app| {
+            let state = Arc::clone(&embedding_arc_init);
+            tauri::async_runtime::spawn(async move {
+                let result = tokio::task::spawn_blocking(|| {
+                    TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+                })
+                .await;
+                match result {
+                    Ok(Ok(model)) => { *state.lock().unwrap() = Some(model); }
+                    Ok(Err(e)) => eprintln!("[moss] embedding model init failed: {e}"),
+                    Err(e) => eprintln!("[moss] embedding spawn_blocking panicked: {e}"),
+                }
+            });
+            Ok(())
+        })
         .plugin(tauri_plugin_opener::init())
         .plugin(SqlBuilder::default().add_migrations("sqlite:moss.db", migrations).build())
         .invoke_handler(tauri::generate_handler![

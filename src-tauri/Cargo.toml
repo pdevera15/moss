@@ -26,3 +26,5 @@ tauri-plugin-sql = { version = "2.4.0", features = ["sqlite"] }
 tauri-plugin-updater = "2.10.1"
 rusqlite = { version = "0.31", features = ["bundled"] }
 uuid = { version = "1", features = ["v4"] }
+fastembed = "5"
+tokio = { version = "1", features = ["rt-multi-thread"] }

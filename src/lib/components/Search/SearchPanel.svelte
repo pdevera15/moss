@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import type { Note } from '$core/types'
   import { getTagColors } from '$lib/utils/tagColors'
-  import { recentSearches, searchNotes, type SearchResult } from '$lib/stores/search.svelte'
+  import { recentSearches, searchNotes, semanticSearch, type SearchResult, type SemanticResult } from '$lib/stores/search.svelte'
   import { notesStore } from '$lib/stores/notes.svelte'
 
   interface Props {
@@ -20,7 +20,9 @@
   let activeId    = $state<string | null>(null)
   let inputEl     = $state<HTMLInputElement | null>(null)
   let isComposing = $state(false)
-  let ftsResults  = $state<SearchResult[]>([])
+  let ftsResults      = $state<SearchResult[]>([])
+  let semanticResults = $state<SemanticResult[]>([])
+  let searchVersion   = 0
   let debounceTimer: ReturnType<typeof setTimeout>
 
   onMount(() => inputEl?.focus())
@@ -47,10 +49,25 @@
   function triggerSearch(q: string) {
     clearTimeout(debounceTimer)
     ftsResults = []
+    semanticResults = []
     if (!q.trim()) return
+    const version = ++searchVersion
     debounceTimer = setTimeout(async () => {
-      ftsResults = await searchNotes(q)
+      const fts = await searchNotes(q)
+      if (version !== searchVersion) return
+      ftsResults = fts
+      if (fts.length < 3) {
+        const sem = await semanticSearch(q)
+        if (version !== searchVersion) return
+        semanticResults = sem
+      }
     }, 200)
+  }
+
+  function handleSemanticSelect(result: SemanticResult) {
+    const note = notesStore.notes.find(n => n.id === result.id)
+    if (!note) return
+    onselect(note)
   }
 
   let results = $derived<ResultItem[]>(
@@ -112,7 +129,7 @@
         oncompositionend={() => { isComposing = false; triggerSearch(query) }}
       />
       {#if query}
-        <button class="clear-btn" onclick={() => { query = ''; ftsResults = []; inputEl?.focus() }} aria-label="Clear">×</button>
+        <button class="clear-btn" onclick={() => { query = ''; ftsResults = []; semanticResults = []; inputEl?.focus() }} aria-label="Clear">×</button>
       {/if}
     </div>
   </div>
@@ -188,6 +205,21 @@
           </div>
         </div>
       {/each}
+      {#if semanticResults.length > 0}
+        <div class="section-label">Similar notes</div>
+        {#each semanticResults as result (result.id)}
+          <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+          <div
+            class="result-row"
+            role="button"
+            tabindex="0"
+            onclick={() => handleSemanticSelect(result)}
+            onkeydown={(e) => e.key === 'Enter' && handleSemanticSelect(result)}
+          >
+            <div class="result-title">{result.title || 'Untitled'}</div>
+          </div>
+        {/each}
+      {/if}
     {/if}
   </div>
 

@@ -29,6 +29,12 @@ pub fn run() {
             sql: include_str!("../migrations/0003_fair_paladin.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "add_embeddings",
+            sql: include_str!("../migrations/0004_add_embeddings.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

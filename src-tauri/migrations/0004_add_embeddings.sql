@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS embeddings (
+  note_id    TEXT PRIMARY KEY REFERENCES notes(id) ON DELETE CASCADE,
+  vector     BLOB NOT NULL,
+  updated_at INTEGER NOT NULL
+);

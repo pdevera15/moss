@@ -29,6 +29,13 @@
       "when": 1776940960382,
       "tag": "0003_fair_paladin",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1745545200000,
+      "tag": "0004_add_embeddings",
+      "breakpoints": true
     }
   ]
 }

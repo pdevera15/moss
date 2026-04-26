@@ -64,7 +64,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(SqlBuilder::default().add_migrations("sqlite:moss.db", migrations).build())
         .invoke_handler(tauri::generate_handler![
-            commands::notes::search_notes
+            commands::notes::search_notes,
+            commands::search::embed_note,
+            commands::search::semantic_search,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

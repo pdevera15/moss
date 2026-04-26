@@ -3,6 +3,7 @@ import { notes, tags, noteTags } from '$lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import type { Note } from '$core/types'
 import { syncStore } from '$lib/stores/sync.svelte'
+import { embedNote } from '$lib/stores/search.svelte'
 
 function debounce<T extends (...args: never[]) => void>(fn: T, ms: number): T & { cancel(): void } {
   let timer: ReturnType<typeof setTimeout>
@@ -95,6 +96,7 @@ class NotesStore {
       }
       await this._syncTags(id, body)
       await this._loadTags()
+      embedNote(id, title, body)  // fire-and-forget
     } catch (err) {
       console.error('Failed to save note:', err)
     } finally {

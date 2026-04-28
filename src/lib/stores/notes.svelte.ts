@@ -73,6 +73,7 @@ class NotesStore {
   async deleteNote(id: string): Promise<void> {
     try {
       const db = await getDb()
+      await db.delete(noteTags).where(eq(noteTags.note_id, id))
       await db.delete(notes).where(eq(notes.id, id))
       this.notes = this.notes.filter(n => n.id !== id)
       if (this.activeNote?.id === id) {

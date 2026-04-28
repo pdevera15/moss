@@ -56,7 +56,7 @@
       const fts = await searchNotes(q)
       if (version !== searchVersion) return
       ftsResults = fts
-      if (fts.length < 3) {
+      if (fts.length < 5) {
         const sem = await semanticSearch(q)
         if (version !== searchVersion) return
         semanticResults = sem
@@ -169,7 +169,7 @@
       {:else}
         <div class="empty-hint">Start typing to search…</div>
       {/if}
-    {:else if results.length === 0}
+    {:else if results.length === 0 && semanticResults.length === 0}
       <div class="no-results">No results in {scope}</div>
     {:else}
       {#each results as result (result.id)}
@@ -216,7 +216,10 @@
             onclick={() => handleSemanticSelect(result)}
             onkeydown={(e) => e.key === 'Enter' && handleSemanticSelect(result)}
           >
-            <div class="result-title">{result.title || 'Untitled'}</div>
+            <div class="sem-row">
+              <div class="result-title">{result.title || 'Untitled'}</div>
+              <span class="sem-score">{Math.round(result.score * 100)}%</span>
+            </div>
           </div>
         {/each}
       {/if}
@@ -402,6 +405,7 @@
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     font-family: var(--font-body);
   }
@@ -430,6 +434,21 @@
     color: var(--color-text-muted);
     flex-shrink: 0;
     font-family: var(--font-mono);
+  }
+
+  .sem-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .sem-score {
+    font-size: 9.5px;
+    font-family: var(--font-mono);
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    opacity: 0.7;
   }
 
   /* ── Footer ── */

@@ -11,6 +11,7 @@
   import { getTagColors } from '$lib/utils/tagColors'
   import SearchPanel from '$lib/components/Search/SearchPanel.svelte'
   import CommandPalette from '$lib/components/Search/CommandPalette.svelte'
+  import DevToolbar from '$lib/dev/DevToolbar.svelte'
 
   let activeSection  = $state<'notes' | 'tasks' | 'search'>('notes')
   let paletteOpen    = $state(false)
@@ -202,6 +203,10 @@
   onselect={handleSearchSelect}
   onclose={() => (paletteOpen = false)}
 />
+
+{#if import.meta.env.DEV}
+  <DevToolbar />
+{/if}
 
 <style>
   /* ── Shell ──────────────────────────────────────────────────────────── */

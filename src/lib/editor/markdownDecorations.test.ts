@@ -43,4 +43,7 @@ describe('markdownDecorations', () => {
     document.body.appendChild(parent)
     expect(() => new EditorView({ state, parent })).not.toThrow()
   })
+  it('mounts with ordered list syntax without throwing', () => {
+    expect(() => makeView('1. First\n2. Second\n3. Third')).not.toThrow()
+  })
 })

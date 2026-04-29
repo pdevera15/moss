@@ -157,6 +157,11 @@
     color: var(--color-moss-light);
     margin-right: 4px;
   }
+  :global(.cm-moss-ordered-mark) {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-moss);
+  }
   :global(.cm-moss-fenced-line) {
     background: var(--color-surface);
     font-family: var(--font-mono);

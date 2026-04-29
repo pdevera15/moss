@@ -47,6 +47,7 @@ const cls = {
   link:          Decoration.mark({ class: 'cm-moss-link' }),
   blockquote:    Decoration.line({ class: 'cm-moss-blockquote' }),
   marker:        Decoration.mark({ class: 'cm-moss-marker' }),
+  orderedMark:   Decoration.mark({ class: 'cm-moss-ordered-mark' }),
   tag:           Decoration.mark({ class: 'cm-moss-tag' }),
   hidden:        Decoration.replace({}),
   fencedLine:    Decoration.line({ class: 'cm-moss-fenced-line' }),
@@ -132,9 +133,14 @@ function buildDecorations(view: EditorView): DecorationSet {
         }
         case 'URL':            hideOrMute(from, to); break
         case 'ListMark': {
+          const markText = state.doc.sliceString(from, to)
           if (onCursorLine(from)) {
             entries.push([from, to, cls.marker])
+          } else if (/^\d+[.)]$/.test(markText)) {
+            // Ordered list: style the number, don't replace with a bullet
+            entries.push([from, to, cls.orderedMark])
           } else {
+            // Unordered list: replace `-`, `*`, `+` with a bullet widget
             const lineEnd = state.doc.lineAt(from).to
             entries.push([from, Math.min(to + 1, lineEnd), Decoration.replace({ widget: new BulletWidget() })])
           }

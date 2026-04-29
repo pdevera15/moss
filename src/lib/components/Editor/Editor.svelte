@@ -5,6 +5,7 @@
   import { history, historyKeymap, defaultKeymap } from '@codemirror/commands'
   import { markdown } from '@codemirror/lang-markdown'
   import { languages } from '@codemirror/language-data'
+  import { Strikethrough } from '@lezer/markdown'
   import { getMossTheme, buildMossTheme, themeCompartment, getMossHighlighting } from '$lib/editor/mossTheme'
   import { markdownDecorations } from '$lib/editor/markdownDecorations'
   import { floatingToolbar, markdownKeymap } from '$lib/editor/floatingToolbar'
@@ -51,7 +52,7 @@
     const state = EditorState.create({
       doc: value,
       extensions: [
-        markdown({ codeLanguages: languages }),
+        markdown({ codeLanguages: languages, extensions: [Strikethrough] }),
         getMossTheme(darkMQ.matches),
         getMossHighlighting(),
         markdownDecorations,
@@ -122,8 +123,12 @@
   }
 
   /* ── Inline decorations ───────────────────────────────────────────── */
-  :global(.cm-moss-bold)   { font-weight: 700; }
-  :global(.cm-moss-italic) { font-style: italic; }
+  :global(.cm-moss-bold)          { font-weight: 700; }
+  :global(.cm-moss-italic)        { font-style: italic; }
+  :global(.cm-moss-strikethrough) {
+    text-decoration: line-through;
+    color: var(--color-text-muted);
+  }
 
   :global(.cm-moss-code) {
     font-family: var(--font-mono);

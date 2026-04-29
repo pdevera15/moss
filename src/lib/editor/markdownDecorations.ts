@@ -37,18 +37,19 @@ class CheckboxWidget extends WidgetType {
 }
 
 const cls = {
-  h1:         Decoration.line({ class: 'cm-moss-h1' }),
-  h2:         Decoration.line({ class: 'cm-moss-h2' }),
-  h3:         Decoration.line({ class: 'cm-moss-h3' }),
-  bold:       Decoration.mark({ class: 'cm-moss-bold' }),
-  italic:     Decoration.mark({ class: 'cm-moss-italic' }),
-  code:       Decoration.mark({ class: 'cm-moss-code' }),
-  link:       Decoration.mark({ class: 'cm-moss-link' }),
-  blockquote: Decoration.line({ class: 'cm-moss-blockquote' }),
-  marker:     Decoration.mark({ class: 'cm-moss-marker' }),
-  tag:        Decoration.mark({ class: 'cm-moss-tag' }),
-  hidden:     Decoration.replace({}),
-  fencedLine: Decoration.line({ class: 'cm-moss-fenced-line' }),
+  h1:            Decoration.line({ class: 'cm-moss-h1' }),
+  h2:            Decoration.line({ class: 'cm-moss-h2' }),
+  h3:            Decoration.line({ class: 'cm-moss-h3' }),
+  bold:          Decoration.mark({ class: 'cm-moss-bold' }),
+  italic:        Decoration.mark({ class: 'cm-moss-italic' }),
+  strikethrough: Decoration.mark({ class: 'cm-moss-strikethrough' }),
+  code:          Decoration.mark({ class: 'cm-moss-code' }),
+  link:          Decoration.mark({ class: 'cm-moss-link' }),
+  blockquote:    Decoration.line({ class: 'cm-moss-blockquote' }),
+  marker:        Decoration.mark({ class: 'cm-moss-marker' }),
+  tag:           Decoration.mark({ class: 'cm-moss-tag' }),
+  hidden:        Decoration.replace({}),
+  fencedLine:    Decoration.line({ class: 'cm-moss-fenced-line' }),
 }
 
 // Matches #tag and #nested/tag — must start with a letter, no spaces.
@@ -102,8 +103,10 @@ function buildDecorations(view: EditorView): DecorationSet {
         case 'StrongEmphasis': if (!onCursorLine(from)) entries.push([from, to, cls.bold]); break
         case 'Emphasis':       if (!onCursorLine(from)) entries.push([from, to, cls.italic]); break
         case 'EmphasisMark':   hideOrMute(from, to); break
-        case 'InlineCode':     if (!onCursorLine(from)) entries.push([from, to, cls.code]); break
-        case 'CodeMark':       if (to - from < 3) hideOrMute(from, to); break
+        case 'InlineCode':        if (!onCursorLine(from)) entries.push([from, to, cls.code]); break
+        case 'CodeMark':          if (to - from < 3) hideOrMute(from, to); break
+        case 'Strikethrough':     if (!onCursorLine(from)) entries.push([from, to, cls.strikethrough]); break
+        case 'StrikethroughMark': hideOrMute(from, to); break
         case 'FencedCode': {
           const firstLine = state.doc.lineAt(from).number
           const lastLine  = state.doc.lineAt(to).number

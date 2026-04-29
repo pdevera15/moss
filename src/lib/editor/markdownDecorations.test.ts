@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { markdown } from '@codemirror/lang-markdown'
+import { Strikethrough } from '@lezer/markdown'
 import { markdownDecorations } from './markdownDecorations'
 
 function makeView(doc: string): EditorView {
@@ -32,5 +33,14 @@ describe('markdownDecorations', () => {
   })
   it('mounts with a link without throwing', () => {
     expect(() => makeView('[Moss](https://example.com)')).not.toThrow()
+  })
+  it('mounts with strikethrough syntax without throwing', () => {
+    const state = EditorState.create({
+      doc: '~~done~~',
+      extensions: [markdown({ extensions: [Strikethrough] }), markdownDecorations],
+    })
+    const parent = document.createElement('div')
+    document.body.appendChild(parent)
+    expect(() => new EditorView({ state, parent })).not.toThrow()
   })
 })

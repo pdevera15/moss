@@ -1,5 +1,7 @@
 import { EditorView } from '@codemirror/view'
 import { Compartment } from '@codemirror/state'
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { tags } from '@lezer/highlight'
 
 /**
  * Module-level Compartment for the Moss theme.
@@ -7,6 +9,19 @@ import { Compartment } from '@codemirror/state'
  * Used in Editor.svelte: created once at state init, reconfigured on dark mode change.
  */
 export const themeCompartment = new Compartment()
+
+export const mossHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword,                      color: 'var(--color-moss-dark)', fontWeight: 'bold' },
+  { tag: tags.string,                       color: 'var(--color-amber)' },
+  { tag: tags.comment,                      color: 'var(--color-text-muted)', fontStyle: 'italic' },
+  { tag: [tags.number, tags.bool],          color: 'var(--color-moss)' },
+  { tag: [tags.operator, tags.punctuation], color: 'var(--color-text-muted)' },
+  { tag: [tags.typeName, tags.className],   color: 'var(--color-moss-light)' },
+])
+
+export function getMossHighlighting() {
+  return syntaxHighlighting(mossHighlightStyle)
+}
 
 // buildMossTheme returns the raw EditorView.theme extension.
 // Use this in themeCompartment.reconfigure() for dark mode switching.

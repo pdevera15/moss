@@ -5,7 +5,7 @@
   import { history, historyKeymap, defaultKeymap } from '@codemirror/commands'
   import { markdown } from '@codemirror/lang-markdown'
   import { languages } from '@codemirror/language-data'
-  import { getMossTheme, buildMossTheme, themeCompartment } from '$lib/editor/mossTheme'
+  import { getMossTheme, buildMossTheme, themeCompartment, getMossHighlighting } from '$lib/editor/mossTheme'
   import { markdownDecorations } from '$lib/editor/markdownDecorations'
   import { floatingToolbar, markdownKeymap } from '$lib/editor/floatingToolbar'
 
@@ -53,6 +53,7 @@
       extensions: [
         markdown({ codeLanguages: languages }),
         getMossTheme(darkMQ.matches),
+        getMossHighlighting(),
         markdownDecorations,
         floatingToolbar,
         history(),

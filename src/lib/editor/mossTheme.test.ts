@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getMossTheme, buildMossTheme, themeCompartment } from './mossTheme'
+import { getMossTheme, buildMossTheme, themeCompartment, mossHighlightStyle, getMossHighlighting } from './mossTheme'
 import { Compartment } from '@codemirror/state'
 
 describe('getMossTheme', () => {
@@ -30,5 +30,15 @@ describe('buildMossTheme', () => {
 
   it('light and dark build different raw extensions', () => {
     expect(buildMossTheme(false)).not.toBe(buildMossTheme(true))
+  })
+})
+
+describe('mossHighlightStyle', () => {
+  it('is defined and exported', () => {
+    expect(mossHighlightStyle).toBeDefined()
+  })
+
+  it('getMossHighlighting returns a defined CM6 extension', () => {
+    expect(getMossHighlighting()).toBeDefined()
   })
 })

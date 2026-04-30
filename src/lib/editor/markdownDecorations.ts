@@ -6,7 +6,7 @@ import {
   WidgetType,
 } from '@codemirror/view'
 import type { DecorationSet } from '@codemirror/view'
-import { RangeSetBuilder } from '@codemirror/state'
+import { RangeSetBuilder, StateField, EditorState } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
 
 class BulletWidget extends WidgetType {
@@ -34,6 +34,16 @@ class CheckboxWidget extends WidgetType {
   }
   eq(other: CheckboxWidget): boolean { return this.checked === other.checked && this.pos === other.pos }
   ignoreEvent(e: Event) { return e.type === 'mousedown' }
+}
+
+class HRWidget extends WidgetType {
+  toDOM(): HTMLElement {
+    const div = document.createElement('div')
+    div.className = 'cm-moss-hr'
+    div.setAttribute('aria-hidden', 'true')
+    return div
+  }
+  eq(): boolean { return true }
 }
 
 const cls = {
@@ -183,7 +193,7 @@ function buildDecorations(view: EditorView): DecorationSet {
   return builder.finish()
 }
 
-export const markdownDecorations = ViewPlugin.fromClass(
+const inlineDecorations = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet
     constructor(view: EditorView) {
@@ -197,3 +207,38 @@ export const markdownDecorations = ViewPlugin.fromClass(
   },
   { decorations: v => v.decorations }
 )
+
+// Block decorations (block: true) must live in a StateField — ViewPlugin
+// does not support them and CM6 will throw at construction time.
+function buildHRDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>()
+  const cursorLines = new Set<number>()
+  for (const range of state.selection.ranges) {
+    const fromLine = state.doc.lineAt(range.from).number
+    const toLine   = state.doc.lineAt(range.to).number
+    for (let ln = fromLine; ln <= toLine; ln++) cursorLines.add(ln)
+  }
+
+  syntaxTree(state).iterate({
+    enter(node) {
+      if (node.name !== 'HorizontalRule') return
+      const line = state.doc.lineAt(node.from)
+      if (cursorLines.has(line.number)) return
+      const end = line.number < state.doc.lines ? line.to + 1 : line.to
+      builder.add(line.from, end, Decoration.replace({ widget: new HRWidget(), block: true }))
+    },
+  })
+
+  return builder.finish()
+}
+
+const hrDecorations = StateField.define<DecorationSet>({
+  create(state) { return buildHRDecorations(state) },
+  update(deco, tr) {
+    if (tr.docChanged || tr.selection) return buildHRDecorations(tr.state)
+    return deco
+  },
+  provide(f) { return EditorView.decorations.from(f) },
+})
+
+export const markdownDecorations = [inlineDecorations, hrDecorations]

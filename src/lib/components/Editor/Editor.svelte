@@ -168,6 +168,12 @@
     font-size: 13px;
     display: block;
   }
+  :global(.cm-moss-hr) {
+    border-top: 1.5px solid var(--color-border);
+    margin: var(--space-2) 0;
+    width: 100%;
+    display: block;
+  }
 
   :global(.cm-moss-checkbox) {
     display: inline-block;

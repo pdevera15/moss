@@ -175,6 +175,22 @@
     display: block;
   }
 
+  :global(.cm-moss-image) {
+    max-width: 100%;
+    border-radius: var(--radius-md);
+    display: block;
+    margin: var(--space-1) 0;
+  }
+
+  :global(.cm-moss-image-placeholder) {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+  }
+
   :global(.cm-moss-checkbox) {
     display: inline-block;
     width: 14px;

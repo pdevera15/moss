@@ -46,6 +46,26 @@ class HRWidget extends WidgetType {
   eq(): boolean { return true }
 }
 
+class ImageWidget extends WidgetType {
+  constructor(readonly src: string, readonly alt: string) { super() }
+  toDOM(): HTMLElement {
+    if (this.src.startsWith('/') || this.src.startsWith('.')) {
+      const img = document.createElement('img')
+      img.src = this.src
+      img.alt = this.alt
+      img.className = 'cm-moss-image'
+      return img
+    }
+    const span = document.createElement('span')
+    span.className = 'cm-moss-image-placeholder'
+    span.textContent = `[img: ${this.alt}]`
+    span.setAttribute('role', 'img')
+    span.setAttribute('aria-label', this.alt)
+    return span
+  }
+  eq(other: ImageWidget): boolean { return this.src === other.src && this.alt === other.alt }
+}
+
 const cls = {
   h1:            Decoration.line({ class: 'cm-moss-h1' }),
   h2:            Decoration.line({ class: 'cm-moss-h2' }),
@@ -128,7 +148,23 @@ function buildDecorations(view: EditorView): DecorationSet {
           break
         }
         case 'Link':     if (!onCursorLine(from)) entries.push([from, to, cls.link]); break
+        case 'Image': {
+          if (!onCursorLine(from)) {
+            // Extract URL from the URL child node to avoid capturing an optional title attribute.
+            let src = ''
+            for (let child = node.node.firstChild; child; child = child.nextSibling) {
+              if (child.name === 'URL') { src = state.doc.sliceString(child.from, child.to).trim(); break }
+            }
+            const raw = state.doc.sliceString(from, to)
+            const altMatch = raw.match(/^!\[([^\]]*)\]/)
+            const alt = altMatch ? altMatch[1] : ''
+            if (src) entries.push([from, to, Decoration.replace({ widget: new ImageWidget(src, alt) })])
+          }
+          break
+        }
         case 'LinkMark': {
+          // Skip marks that are children of an Image — the Image node is replaced wholesale
+          if (node.node.parent?.name === 'Image') break
           // Don't hide [ or ] that belong to a task marker pattern [ ] / [x]
           const ch = state.doc.sliceString(from, to)
           if (ch === '[') {
@@ -141,7 +177,10 @@ function buildDecorations(view: EditorView): DecorationSet {
           hideOrMute(from, to)
           break
         }
-        case 'URL':            hideOrMute(from, to); break
+        case 'URL': {
+          if (node.node.parent?.name !== 'Image') hideOrMute(from, to)
+          break
+        }
         case 'ListMark': {
           const markText = state.doc.sliceString(from, to)
           if (onCursorLine(from)) {

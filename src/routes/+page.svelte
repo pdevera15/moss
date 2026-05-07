@@ -360,6 +360,7 @@
     flex-direction: column;
     overflow: hidden;
     position: relative;
+    cursor: text;
   }
 
   .editor-state {

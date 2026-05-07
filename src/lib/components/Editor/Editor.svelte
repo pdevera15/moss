@@ -87,6 +87,9 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    background: var(--color-bg);
+    cursor: text;
+    color-scheme: light;
   }
 
   /* Force cursor to always be amber — some line decorations use

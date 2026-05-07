@@ -33,6 +33,7 @@ export function buildMossTheme(dark = false) {
         background: 'var(--color-bg)',
         height: '100%',
         color: 'var(--color-text)',
+        colorScheme: 'light',
       },
       '.cm-scroller': {
         fontFamily: 'var(--font-body)',

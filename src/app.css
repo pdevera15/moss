@@ -63,6 +63,7 @@ html, body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  color-scheme: light;
 }
 
 /* Scrollbar — thin and unobtrusive */
@@ -154,5 +155,6 @@ html, body {
     --color-text-muted: #9B9890;
     --color-text-faint: #5E5C57;
     --color-moss-tint:  #1E2A1D;
+    color-scheme: dark;
   }
 }

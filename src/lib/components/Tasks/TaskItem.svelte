@@ -126,8 +126,10 @@
   <button
     class="circle"
     class:checked={task.done}
+    disabled={hasSubs && !allSubsDone && !task.done}
     onclick={() => ontoggle(task.id)}
-    aria-label={task.done ? 'Mark incomplete' : 'Mark complete'}
+    onpointerdown={e => e.stopPropagation()}
+    aria-label={task.done ? 'Mark incomplete' : hasSubs && !allSubsDone ? 'Complete all subtasks first' : 'Mark complete'}
   >
     {#if task.done}
       <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
@@ -191,6 +193,7 @@
               class="circle small"
               class:checked={sub.done}
               onclick={() => ontogglesub(task.id, sub.id)}
+              onpointerdown={e => e.stopPropagation()}
               aria-label={sub.done ? 'Mark incomplete' : 'Mark complete'}
             >
               {#if sub.done}
@@ -298,6 +301,7 @@
     box-shadow: 0 0 0 3px rgba(59,104,64,0.12);
   }
 
+  .circle:disabled { cursor: not-allowed; opacity: 0.35; }
   .circle.small { width: 14px; height: 14px; margin-top: 0; }
 
   .circle-dashed {
@@ -418,7 +422,7 @@
     transition: all 0.15s;
   }
 
-  .subtask-title.done { text-decoration: line-through; opacity: 0.6; }
+  .subtask-title.done { text-decoration: line-through; }
 
   /* ── Add subtask ── */
   .add-sub-row {

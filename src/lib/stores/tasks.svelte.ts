@@ -106,6 +106,7 @@ class TasksStore {
   async toggleTask(id: string): Promise<void> {
     const task = this.tasks.find(t => t.id === id)
     if (!task) return
+    if (!task.done && task.subtasks.length > 0 && !task.subtasks.every(s => s.done)) return
     task.done = !task.done
     try {
       const db = await getDb()

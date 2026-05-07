@@ -6,7 +6,7 @@
   import { markdown } from '@codemirror/lang-markdown'
   import { languages } from '@codemirror/language-data'
   import { Strikethrough } from '@lezer/markdown'
-  import { getMossTheme, buildMossTheme, themeCompartment, getMossHighlighting } from '$lib/editor/mossTheme'
+  import { getMossTheme, getMossHighlighting } from '$lib/editor/mossTheme'
   import { markdownDecorations } from '$lib/editor/markdownDecorations'
   import { floatingToolbar, markdownKeymap } from '$lib/editor/floatingToolbar'
 
@@ -47,13 +47,11 @@
   })
 
   onMount(() => {
-    const darkMQ = window.matchMedia('(prefers-color-scheme: dark)')
-
     const state = EditorState.create({
       doc: value,
       extensions: [
         markdown({ codeLanguages: languages, extensions: [Strikethrough] }),
-        getMossTheme(darkMQ.matches),
+        getMossTheme(false),
         getMossHighlighting(),
         markdownDecorations,
         floatingToolbar,
@@ -73,15 +71,6 @@
 
     view = new EditorView({ state, parent: container })
 
-    // Use buildMossTheme (raw) for reconfigure — NOT getMossTheme (which wraps in compartment.of)
-    function onColorSchemeChange(e: MediaQueryListEvent) {
-      view.dispatch({
-        effects: themeCompartment.reconfigure(buildMossTheme(e.matches)),
-      })
-    }
-
-    darkMQ.addEventListener('change', onColorSchemeChange)
-    return () => darkMQ.removeEventListener('change', onColorSchemeChange)
   })
 
   onDestroy(() => {
@@ -98,6 +87,16 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  /* Force cursor to always be amber — some line decorations use
+     color:transparent which can cause caret-color:auto to go invisible. */
+  :global(.cm-editor .cm-cursor),
+  :global(.cm-editor .cm-dropCursor) {
+    border-left-color: var(--color-amber) !important;
+  }
+  :global(.cm-editor .cm-content) {
+    caret-color: var(--color-amber) !important;
   }
 
   /* ── Heading decorations ──────────────────────────────────────────── */
@@ -161,6 +160,34 @@
     font-family: var(--font-mono);
     font-size: 13px;
     color: var(--color-moss);
+  }
+  /* Opening fence line: hide the ``` text, show language via ::before */
+  :global(.cm-moss-fence-open) {
+    color: transparent !important;
+    background: var(--color-surface);
+    overflow: hidden;
+  }
+  :global(.cm-moss-fence-open::before) {
+    content: attr(data-lang);
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    user-select: none;
+    float: right;
+    margin: 4px 10px 4px 0;
+  }
+  /* Closing fence line: fully collapsed */
+  :global(.cm-moss-fence-close) {
+    color: transparent !important;
+    overflow: hidden;
   }
   :global(.cm-moss-fenced-line) {
     background: var(--color-surface);

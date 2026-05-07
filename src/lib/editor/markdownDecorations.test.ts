@@ -46,4 +46,7 @@ describe('markdownDecorations', () => {
   it('mounts with ordered list syntax without throwing', () => {
     expect(() => makeView('1. First\n2. Second\n3. Third')).not.toThrow()
   })
+  it('mounts with horizontal rule without throwing', () => {
+    expect(() => makeView('Above\n\n---\n\nBelow')).not.toThrow()
+  })
 })

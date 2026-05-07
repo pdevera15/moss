@@ -36,6 +36,32 @@ class CheckboxWidget extends WidgetType {
   ignoreEvent(e: Event) { return e.type === 'mousedown' }
 }
 
+const LANG_NAMES: Record<string, string> = {
+  js: 'JavaScript', javascript: 'JavaScript',
+  ts: 'TypeScript', typescript: 'TypeScript',
+  jsx: 'JSX', tsx: 'TSX',
+  py: 'Python', python: 'Python',
+  rs: 'Rust', rust: 'Rust',
+  go: 'Go',
+  java: 'Java',
+  kt: 'Kotlin', kotlin: 'Kotlin',
+  swift: 'Swift',
+  cs: 'C#', cpp: 'C++', c: 'C',
+  rb: 'Ruby', ruby: 'Ruby',
+  php: 'PHP',
+  dart: 'Dart',
+  svelte: 'Svelte', vue: 'Vue',
+  html: 'HTML', css: 'CSS', scss: 'SCSS',
+  sh: 'Shell', bash: 'Bash', zsh: 'Zsh',
+  json: 'JSON', yaml: 'YAML', yml: 'YAML', toml: 'TOML',
+  sql: 'SQL', md: 'Markdown', xml: 'XML',
+}
+
+function displayLang(raw: string): string {
+  const key = raw.toLowerCase()
+  return LANG_NAMES[key] ?? (raw.charAt(0).toUpperCase() + raw.slice(1))
+}
+
 class HRWidget extends WidgetType {
   toDOM(): HTMLElement {
     const div = document.createElement('div')
@@ -81,6 +107,7 @@ const cls = {
   tag:           Decoration.mark({ class: 'cm-moss-tag' }),
   hidden:        Decoration.replace({}),
   fencedLine:    Decoration.line({ class: 'cm-moss-fenced-line' }),
+  fenceClose:    Decoration.line({ class: 'cm-moss-fence-close' }),
 }
 
 // Matches #tag and #nested/tag — must start with a letter, no spaces.
@@ -139,11 +166,35 @@ function buildDecorations(view: EditorView): DecorationSet {
         case 'Strikethrough':     if (!onCursorLine(from)) entries.push([from, to, cls.strikethrough]); break
         case 'StrikethroughMark': hideOrMute(from, to); break
         case 'FencedCode': {
-          const firstLine = state.doc.lineAt(from).number
-          const lastLine  = state.doc.lineAt(to).number
-          for (let ln = firstLine; ln <= lastLine; ln++) {
-            const line = state.doc.line(ln)
-            entries.push([line.from, line.from, cls.fencedLine])
+          const firstLine = state.doc.lineAt(from)
+          const lastLine  = state.doc.lineAt(to)
+          // Reveal raw fence markers when cursor is anywhere inside the block
+          const cursorInBlock = state.selection.ranges.some(range => {
+            const ln = state.doc.lineAt(range.from).number
+            return ln >= firstLine.number && ln <= lastLine.number
+          })
+          // Opening fence line always gets background
+          entries.push([firstLine.from, firstLine.from, cls.fencedLine])
+          if (!cursorInBlock) {
+            let rawLang = ''
+            for (let child = node.node.firstChild; child; child = child.nextSibling) {
+              if (child.name === 'CodeInfo') { rawLang = state.doc.sliceString(child.from, child.to).trim(); break }
+            }
+            const label = rawLang ? displayLang(rawLang) : ''
+            entries.push([firstLine.from, firstLine.from, Decoration.line({
+              class: 'cm-moss-fence-open',
+              attributes: label ? { 'data-lang': label } : {},
+            })])
+          }
+          // Content lines always get the fenced background
+          for (let ln = firstLine.number + 1; ln < lastLine.number; ln++) {
+            const cl = state.doc.line(ln)
+            entries.push([cl.from, cl.from, cls.fencedLine])
+          }
+          // Closing fence line always gets background; collapse when cursor not in block
+          if (lastLine.number !== firstLine.number) {
+            entries.push([lastLine.from, lastLine.from, cls.fencedLine])
+            if (!cursorInBlock) entries.push([lastLine.from, lastLine.from, cls.fenceClose])
           }
           break
         }

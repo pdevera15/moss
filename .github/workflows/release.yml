@@ -6,7 +6,46 @@ on:
       - 'v*'
 
 jobs:
-  release:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.tauri-release.outputs.releaseId }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: cl
+        run: |
+          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n1)
+          RANGE="${PREV:+$PREV..}HEAD"
+          FEATURES=$(git log --pretty=format:"%s" $RANGE | grep "^feat" | sed 's/^feat[^:]*: /- /')
+          FIXES=$(git log --pretty=format:"%s" $RANGE | grep "^fix" | sed 's/^fix[^:]*: /- /')
+          {
+            echo 'body<<EOF'
+            [ -n "$FEATURES" ] && printf "### New\n%s\n" "$FEATURES"
+            [ -n "$FEATURES" ] && [ -n "$FIXES" ] && echo ""
+            [ -n "$FIXES" ]    && printf "### Fixed\n%s\n" "$FIXES"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create draft release
+        id: tauri-release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
+          releaseBody: ${{ steps.cl.outputs.body }}
+          releaseDraft: true
+
+  build:
+    needs: create-release
     permissions:
       contents: write
     strategy:
@@ -47,21 +86,27 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build and release
+      - name: Build and upload
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: ${{ github.ref_name }}
-          releaseBody: |
-            ## What's new
-
-            - **Multilingual semantic search** — supports 50+ languages with automatic re-indexing
-            - **Obsidian-style callout blocks** — `> [!note]`, `> [!warning]`, `> [!tip]` and more
-            - **Tab indentation** — Tab / Shift+Tab indent and outdent in the editor
-            - **Scrollable tag list** — sidebar tag list scrolls when tags overflow
-            - **Search UX** — selecting a result auto-expands its note group and focuses the editor
-          releaseDraft: false
-          prerelease: false
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
+
+  publish-release:
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.create-release.outputs.release_id }},
+              draft: false
+            })

@@ -1,4 +1,4 @@
-import { ViewPlugin, ViewUpdate, EditorView } from '@codemirror/view'
+import { ViewPlugin, type ViewUpdate, EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import type { KeyBinding } from '@codemirror/view'
 

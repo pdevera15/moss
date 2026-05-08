@@ -100,6 +100,16 @@
     }
   })
 
+  // Expand all groups when a tag filter is active so every match is visible
+  $effect(() => {
+    if (!activeTag) return
+    const expanded: Record<string, boolean> = {}
+    for (const g of groups) {
+      expanded[g.key] = false
+    }
+    collapsed = expanded
+  })
+
   // When the active note changes (e.g. selected from search), expand its group
   $effect(() => {
     if (!activeId) return

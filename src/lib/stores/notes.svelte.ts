@@ -43,7 +43,7 @@ class NotesStore {
       }
       this.notes = rows as Note[]
       this.activeNote = this.notes[0]
-      await this._loadTags()
+      this._loadTags()
       checkReindexNeeded().then(needed => { if (needed) reindexAllEmbeddings() })
     } catch (err) {
       this.loadError = String(err)
@@ -97,7 +97,7 @@ class NotesStore {
         this.notes[idx].body  = body
       }
       await this._syncTags(id, body)
-      await this._loadTags()
+      this._loadTags()
       embedNote(id, title, body)  // fire-and-forget
     } catch (err) {
       console.error('Failed to save note:', err)
@@ -127,14 +127,9 @@ class NotesStore {
     }
   }
 
-  private async _loadTags(): Promise<void> {
-    const db  = await getDb()
-    const rows = await db
-      .selectDistinct({ name: tags.name })
-      .from(tags)
-      .innerJoin(noteTags, eq(noteTags.tag_id, tags.id))
-      .orderBy(tags.name)
-    this.tags = rows.map(r => r.name)
+  private _loadTags(): void {
+    const all = this.notes.flatMap(n => extractTags(n.body))
+    this.tags = [...new Set(all)].sort()
   }
 }
 

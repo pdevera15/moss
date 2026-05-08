@@ -13,11 +13,13 @@
   import CommandPalette from '$lib/components/Search/CommandPalette.svelte'
   import DevToolbar from '$lib/dev/DevToolbar.svelte'
   import UpdateBanner from '$lib/components/Base/UpdateBanner.svelte'
+  import SettingsModal from '$lib/components/Settings/SettingsModal.svelte'
 
   const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
 
   let activeSection  = $state<'notes' | 'tasks' | 'search'>('notes')
   let paletteOpen    = $state(false)
+  let settingsOpen   = $state(false)
 
   function openPalette() { paletteOpen = true }
 
@@ -136,7 +138,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <button class="nav-item">
+      <button class="nav-item" onclick={() => (settingsOpen = true)}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
@@ -214,6 +216,8 @@
 {#if isTauri}
   <UpdateBanner />
 {/if}
+
+<SettingsModal bind:open={settingsOpen} />
 
 <style>
   /* ── Shell ──────────────────────────────────────────────────────────── */

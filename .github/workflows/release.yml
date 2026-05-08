@@ -88,3 +88,32 @@ jobs:
               release_id: ${{ needs.create-release.outputs.release_id }},
               draft: false
             })
+
+  publish-update-manifest:
+    needs: [create-release, build, publish-release]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download latest.json from release
+        run: |
+          curl -sL \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$(
+              curl -sL \
+                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/releases/${{ needs.create-release.outputs.release_id }}/assets" \
+              | jq -r '.[] | select(.name == "latest.json") | .id'
+            )" > latest.json
+
+      - name: Push to public updates repo
+        uses: dmnemec/copy_file_to_another_repo_action@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.UPDATES_REPO_TOKEN }}
+        with:
+          source_file: latest.json
+          destination_repo: pdevera15/moss-updates
+          destination_branch: main
+          user_email: ${{ github.actor }}@users.noreply.github.com
+          user_name: ${{ github.actor }}
+          commit_message: "chore: update manifest for ${{ github.ref_name }}"

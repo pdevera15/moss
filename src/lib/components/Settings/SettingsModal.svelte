@@ -63,10 +63,9 @@
       } else {
         updateState = 'up-to-date'
       }
-    } catch {
-      // Network/endpoint not reachable (no releases yet, or offline).
-      // Show as up-to-date rather than a scary error — same as the banner.
-      updateState = 'up-to-date'
+    } catch (e) {
+      updateState = 'error'
+      errorMsg    = e instanceof Error ? e.message : String(e)
       lastChecked = 'unavailable'
     }
   }

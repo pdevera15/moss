@@ -100,6 +100,17 @@
     }
   })
 
+  // When the active note changes (e.g. selected from search), expand its group
+  $effect(() => {
+    if (!activeId) return
+    for (const g of groups) {
+      if (g.rows.some(r => r.note.id === activeId) && collapsed[g.key]) {
+        collapsed = { ...collapsed, [g.key]: false }
+        break
+      }
+    }
+  })
+
   function toggle(key: string) {
     collapsed = { ...collapsed, [key]: !collapsed[key] }
   }

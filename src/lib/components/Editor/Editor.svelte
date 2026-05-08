@@ -46,6 +46,7 @@
     }
   })
 
+  // Focus the editor whenever the active note changes so the cursor is visible.
   onMount(() => {
     const state = EditorState.create({
       doc: value,
@@ -91,7 +92,7 @@
     })
 
     view = new EditorView({ state, parent: container })
-
+    view.focus()
   })
 
   onDestroy(() => {

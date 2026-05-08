@@ -39,6 +39,12 @@ pub fn run() {
             sql: include_str!("../migrations/0004_add_embeddings.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 6,
+            description: "add_settings",
+            sql: include_str!("../migrations/0005_add_settings.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     let embedding_arc: Arc<Mutex<Option<TextEmbedding>>> = Arc::new(Mutex::new(None));
@@ -50,7 +56,7 @@ pub fn run() {
             let state = Arc::clone(&embedding_arc_init);
             tauri::async_runtime::spawn(async move {
                 let result = tokio::task::spawn_blocking(|| {
-                    TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+                    TextEmbedding::try_new(InitOptions::new(EmbeddingModel::ParaphraseMLMiniLML12V2))
                 })
                 .await;
                 match result {
@@ -67,6 +73,7 @@ pub fn run() {
             commands::notes::search_notes,
             commands::search::embed_note,
             commands::search::semantic_search,
+            commands::search::check_reindex_needed,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

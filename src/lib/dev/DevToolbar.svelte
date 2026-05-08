@@ -1,5 +1,6 @@
 <script lang="ts">
   let embedMsg = $state('')
+  let seedMsg  = $state('')
 
   async function handleReEmbed() {
     embedMsg = '…'
@@ -11,6 +12,20 @@
       embedMsg = '!'
     } finally {
       setTimeout(() => { embedMsg = '' }, 2000)
+    }
+  }
+
+  async function handleSeedJapanese() {
+    seedMsg = '…'
+    try {
+      const { seedJapaneseNotes } = await import('./seedJapaneseNotes')
+      await seedJapaneseNotes()
+      seedMsg = '✓'
+      window.location.reload()
+    } catch {
+      seedMsg = '!'
+    } finally {
+      setTimeout(() => { seedMsg = '' }, 2000)
     }
   }
 
@@ -52,6 +67,11 @@
   <button class="dev-btn" onclick={handleReEmbed} title="Re-embed all notes">
     <span class="icon">{embedMsg || '⟳'}</span>
     <span class="label">re-embed</span>
+  </button>
+
+  <button class="dev-btn" onclick={handleSeedJapanese} title="Seed Japanese test notes">
+    <span class="icon">{seedMsg || '🇯🇵'}</span>
+    <span class="label">seed JP</span>
   </button>
 </div>
 

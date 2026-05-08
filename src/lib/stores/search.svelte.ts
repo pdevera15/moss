@@ -1,4 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
+import { getDb } from '$lib/db'
+import { notes } from '$lib/db/schema'
 
 export interface SearchResult {
   id: string
@@ -28,6 +30,22 @@ export async function embedNote(noteId: string, title: string, body: string): Pr
     await invoke('embed_note', { noteId, title, body })
   } catch {
     // fire-and-forget — embedding failure never blocks the user
+  }
+}
+
+export async function checkReindexNeeded(): Promise<boolean> {
+  try {
+    return await invoke<boolean>('check_reindex_needed')
+  } catch {
+    return false
+  }
+}
+
+export async function reindexAllEmbeddings(): Promise<void> {
+  const db = await getDb()
+  const rows = await db.select({ id: notes.id, title: notes.title, body: notes.body }).from(notes)
+  for (const row of rows) {
+    await embedNote(row.id, row.title, row.body)
   }
 }
 

@@ -34,7 +34,7 @@ Editor            CodeMirror 6
 Database          SQLite via tauri-plugin-sql (JS side) + Rust commands (FTS5/embeddings)
 ORM               Drizzle ORM (sqlite-proxy mode) — all CRUD from TypeScript uses Drizzle
 Sync              Yjs + y-websocket (CRDT, works offline)
-Semantic Search   Transformers.js — all-MiniLM-L6-v2 (25MB, on-device)
+Semantic Search   Transformers.js — paraphrase-multilingual-MiniLM-L12-v2 (120MB, on-device, 50+ languages)
 i18n              svelte-i18n
 Styling           Tailwind CSS v4 + CSS custom properties (NO UI libraries)
 Fonts             DM Serif Display, Lora, Geist Mono (via @fontsource)
@@ -507,7 +507,7 @@ let platform = $state<Platform>(detectPlatform())
 
 ### Phase 3 — Smart Features
 ```
-⬜ Semantic search — Transformers.js on-device
+✅ Semantic search — fastembed (Rust, paraphrase-multilingual-MiniLM-L12-v2, 50+ languages, on-device)
 ⬜ Command palette ⌘K (already done in Phase 2)
 ⬜ Import from Obsidian vault folder
 ⬜ Import from Evernote .enex

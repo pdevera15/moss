@@ -3,6 +3,8 @@ use serde::Serialize;
 use std::sync::Arc;
 use tauri::Manager;
 
+const CURRENT_MODEL: &str = "paraphrase-multilingual-MiniLM-L12-v2";
+
 #[derive(Serialize)]
 pub struct SemanticResult {
     pub id: String,
@@ -127,6 +129,39 @@ pub async fn semantic_search(
     results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
     results.truncate(5);
     Ok(results)
+}
+
+/// Checks if embeddings need to be regenerated due to a model change.
+/// If the stored model name doesn't match CURRENT_MODEL, clears all embeddings
+/// and updates the stored model name, then returns true. Otherwise returns false.
+#[tauri::command]
+pub async fn check_reindex_needed(app_handle: tauri::AppHandle) -> Result<bool, String> {
+    let db_path = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e: tauri::Error| e.to_string())?
+        .join("moss.db");
+    let conn = rusqlite::Connection::open(db_path).map_err(|e| e.to_string())?;
+
+    let stored: String = conn
+        .query_row(
+            "SELECT value FROM settings WHERE key = 'embedding_model'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or_default();
+
+    if stored != CURRENT_MODEL {
+        conn.execute("DELETE FROM embeddings", []).map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES ('embedding_model', ?1)",
+            rusqlite::params![CURRENT_MODEL],
+        )
+        .map_err(|e| e.to_string())?;
+        return Ok(true);
+    }
+
+    Ok(false)
 }
 
 #[cfg(test)]

@@ -3,7 +3,7 @@ import { notes, tags, noteTags } from '$lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import type { Note } from '$core/types'
 import { syncStore } from '$lib/stores/sync.svelte'
-import { embedNote } from '$lib/stores/search.svelte'
+import { embedNote, checkReindexNeeded, reindexAllEmbeddings } from '$lib/stores/search.svelte'
 
 function debounce<T extends (...args: never[]) => void>(fn: T, ms: number): T & { cancel(): void } {
   let timer: ReturnType<typeof setTimeout>
@@ -44,6 +44,7 @@ class NotesStore {
       this.notes = rows as Note[]
       this.activeNote = this.notes[0]
       await this._loadTags()
+      checkReindexNeeded().then(needed => { if (needed) reindexAllEmbeddings() })
     } catch (err) {
       this.loadError = String(err)
       console.error('Failed to load notes:', err)

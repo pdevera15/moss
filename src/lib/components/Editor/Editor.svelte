@@ -8,7 +8,7 @@
   import { Strikethrough } from '@lezer/markdown'
   import { getMossTheme, getMossHighlighting } from '$lib/editor/mossTheme'
   import { markdownDecorations } from '$lib/editor/markdownDecorations'
-  import { floatingToolbar, markdownKeymap } from '$lib/editor/floatingToolbar'
+  import { floatingToolbar, markdownKeymap, rightClickGuard } from '$lib/editor/floatingToolbar'
 
   let {
     value = $bindable(''),
@@ -77,6 +77,7 @@
         getMossHighlighting(),
         markdownDecorations,
         floatingToolbar,
+        rightClickGuard,
         history(),
         keymap.of([...markdownKeymap, indentWithTab, ...defaultKeymap, ...historyKeymap]),
         EditorView.lineWrapping,

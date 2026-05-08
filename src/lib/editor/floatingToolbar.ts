@@ -1,5 +1,5 @@
 import { ViewPlugin, type ViewUpdate, EditorView } from '@codemirror/view'
-import { EditorSelection } from '@codemirror/state'
+import { EditorSelection, Prec } from '@codemirror/state'
 import type { KeyBinding } from '@codemirror/view'
 
 type FormatAction = {
@@ -67,8 +67,12 @@ function positionToolbar(bar: HTMLElement, view: EditorView): void {
   if (!startCoords || !endCoords) return
 
   const editorRect = view.dom.getBoundingClientRect()
-  const midX = (startCoords.left + endCoords.right) / 2 - editorRect.left
-  const topY  = startCoords.top - editorRect.top - 48
+  const barHalf    = bar.offsetWidth / 2
+  const margin     = 8
+  const rawX       = (startCoords.left + endCoords.right) / 2 - editorRect.left
+  // Clamp so the toolbar never overflows the editor's left or right edge.
+  const midX       = Math.min(editorRect.width - barHalf - margin, Math.max(barHalf + margin, rawX))
+  const topY       = startCoords.top - editorRect.top - 48
 
   bar.style.left      = `${midX}px`
   bar.style.top       = `${Math.max(4, topY)}px`
@@ -81,11 +85,27 @@ export const markdownKeymap: KeyBinding[] = [
   { key: 'Mod-k', run: (view) => { applyWrap(view, '[', '](url)'); return true } },
 ]
 
+// True while the primary mouse button is held down inside the editor.
+// Used to defer toolbar creation until mouseup so we don't insert DOM nodes
+// mid-drag (which interrupts the browser's native drag-to-select gesture and
+// collapses the selection).
+let _mouseSelecting = false
+
 export const floatingToolbar = ViewPlugin.fromClass(
   class {
     toolbar: HTMLElement | null = null
+    private onPointerUp: (e: PointerEvent) => void
 
-    constructor(_view: EditorView) {}
+    constructor(view: EditorView) {
+      // Listen on document so we catch mouseup even when the pointer is
+      // released outside the editor (e.g. right-to-left drag past the edge).
+      this.onPointerUp = (e: PointerEvent) => {
+        if (e.button !== 0 || !_mouseSelecting) return
+        _mouseSelecting = false
+        view.dispatch({})
+      }
+      document.addEventListener('pointerup', this.onPointerUp)
+    }
 
     update(update: ViewUpdate) {
       const sel = update.view.state.selection.main
@@ -96,6 +116,19 @@ export const floatingToolbar = ViewPlugin.fromClass(
         return
       }
 
+      // Don't CREATE the toolbar while the user is still dragging to select —
+      // appending a DOM node mid-drag collapses the selection in WebView2.
+      // If the toolbar already exists (e.g. from a prior keyboard selection),
+      // keep repositioning it so it tracks the live selection.
+      if (_mouseSelecting) {
+        if (this.toolbar) {
+          const toolbar = this.toolbar
+          const view = update.view
+          requestAnimationFrame(() => positionToolbar(toolbar, view))
+        }
+        return
+      }
+
       if (!this.toolbar) {
         this.toolbar = buildToolbar(update.view)
         this.toolbar.style.position = 'absolute'
@@ -103,8 +136,6 @@ export const floatingToolbar = ViewPlugin.fromClass(
         update.view.dom.appendChild(this.toolbar)
       }
 
-      // Defer layout reads (coordsAtPos, getBoundingClientRect) until after
-      // the current update cycle has flushed to the DOM.
       const toolbar = this.toolbar
       const view = update.view
       requestAnimationFrame(() => positionToolbar(toolbar, view))
@@ -112,6 +143,17 @@ export const floatingToolbar = ViewPlugin.fromClass(
 
     destroy() {
       this.toolbar?.remove()
+      document.removeEventListener('pointerup', this.onPointerUp)
     }
   }
+)
+
+// Prec.highest so these handlers fire before CodeMirror's own mousedown logic.
+export const rightClickGuard = Prec.highest(
+  EditorView.domEventHandlers({
+    mousedown(event: MouseEvent) {
+      if (event.button === 2) return true  // block right-click from clearing selection
+      if (event.button === 0) _mouseSelecting = true
+    },
+  })
 )

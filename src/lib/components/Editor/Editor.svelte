@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte'
   import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
   import { EditorState } from '@codemirror/state'
-  import { history, historyKeymap, defaultKeymap } from '@codemirror/commands'
+  import { history, historyKeymap, defaultKeymap, indentWithTab } from '@codemirror/commands'
   import { markdown } from '@codemirror/lang-markdown'
   import { languages } from '@codemirror/language-data'
   import { Strikethrough } from '@lezer/markdown'
@@ -56,7 +56,7 @@
         markdownDecorations,
         floatingToolbar,
         history(),
-        keymap.of([...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
+        keymap.of([...markdownKeymap, indentWithTab, ...defaultKeymap, ...historyKeymap]),
         EditorView.lineWrapping,
         cmPlaceholder(placeholder),
         EditorView.updateListener.of(update => {

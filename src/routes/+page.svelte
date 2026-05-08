@@ -12,6 +12,9 @@
   import SearchPanel from '$lib/components/Search/SearchPanel.svelte'
   import CommandPalette from '$lib/components/Search/CommandPalette.svelte'
   import DevToolbar from '$lib/dev/DevToolbar.svelte'
+  import UpdateBanner from '$lib/components/Base/UpdateBanner.svelte'
+
+  const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
 
   let activeSection  = $state<'notes' | 'tasks' | 'search'>('notes')
   let paletteOpen    = $state(false)
@@ -206,6 +209,10 @@
 
 {#if import.meta.env.DEV}
   <DevToolbar />
+{/if}
+
+{#if isTauri}
+  <UpdateBanner />
 {/if}
 
 <style>

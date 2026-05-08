@@ -131,6 +131,42 @@ html, body {
   --radius-lg: 12px;
   --radius-xl: 18px;
 
+  /* ── Callout colors ─────────────────────────────────────────────────── */
+  /* info — moss green (app primary, general notes) */
+  --callout-info-bg:        #EEF4ED;
+  --callout-info-border:    #5A7F54;
+  --callout-info-color:     #2E4A2B;
+
+  /* tip — teal (fresh, actionable hints) */
+  --callout-tip-bg:         #E6F4F1;
+  --callout-tip-border:     #3A8C80;
+  --callout-tip-color:      #163830;
+
+  /* success — vivid spring green (celebratory) */
+  --callout-success-bg:     #EDFAEE;
+  --callout-success-border: #38A844;
+  --callout-success-color:  #163820;
+
+  /* warning — amber (cautious) */
+  --callout-warning-bg:     #FAF3E8;
+  --callout-warning-border: #C4905A;
+  --callout-warning-color:  #4A3520;
+
+  /* danger — crimson (critical) */
+  --callout-danger-bg:      #FAF0F0;
+  --callout-danger-border:  #A84848;
+  --callout-danger-color:   #3A1C1C;
+
+  /* example — warm slate blue (studious, reference) */
+  --callout-example-bg:     #EEF0F8;
+  --callout-example-border: #6870A8;
+  --callout-example-color:  #28304A;
+
+  /* quote — warm sepia (literary, citations) */
+  --callout-quote-bg:       #F8F4EE;
+  --callout-quote-border:   #9A7850;
+  --callout-quote-color:    #4A3820;
+
   /* ── Shadows ─────────────────────────────────────────────────────────── */
   --shadow-sm: 0 1px 2px rgba(28, 27, 24, 0.06);
   --shadow-md: 0 2px 8px rgba(28, 27, 24, 0.10);
@@ -156,5 +192,33 @@ html, body {
     --color-text-faint: #5E5C57;
     --color-moss-tint:  #1E2A1D;
     color-scheme: dark;
+
+    --callout-info-bg:        #1A2418;
+    --callout-info-border:    #5A7F54;
+    --callout-info-color:     #C8DEC4;
+
+    --callout-tip-bg:         #142422;
+    --callout-tip-border:     #3A8C80;
+    --callout-tip-color:      #A8D8D0;
+
+    --callout-success-bg:     #142318;
+    --callout-success-border: #38A844;
+    --callout-success-color:  #A8DEB0;
+
+    --callout-warning-bg:     #28200F;
+    --callout-warning-border: #C4905A;
+    --callout-warning-color:  #E8C898;
+
+    --callout-danger-bg:      #281818;
+    --callout-danger-border:  #A84848;
+    --callout-danger-color:   #E8B0B0;
+
+    --callout-example-bg:     #181A28;
+    --callout-example-border: #6870A8;
+    --callout-example-color:  #B8C0E0;
+
+    --callout-quote-bg:       #231C10;
+    --callout-quote-border:   #9A7850;
+    --callout-quote-color:    #DDD0B8;
   }
 }

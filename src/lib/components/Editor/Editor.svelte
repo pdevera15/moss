@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte'
   import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
-  import { EditorState } from '@codemirror/state'
+  import { EditorState, Prec } from '@codemirror/state'
   import { history, historyKeymap, defaultKeymap, indentWithTab } from '@codemirror/commands'
   import { markdown } from '@codemirror/lang-markdown'
   import { languages } from '@codemirror/language-data'
@@ -50,6 +50,27 @@
     const state = EditorState.create({
       doc: value,
       extensions: [
+        // Highest-priority Enter handler: exits an empty blockquote continuation
+        // line ("> " or ">") created by the markdown extension's auto-continue.
+        // Must use Prec.highest so it fires before the markdown() extension's
+        // own Enter handler, which would otherwise create yet another "> " line.
+        Prec.highest(keymap.of([{
+          key: 'Enter',
+          run(v) {
+            const range = v.state.selection.main
+            if (!range.empty) return false
+            const line = v.state.doc.lineAt(range.head)
+            if (line.text !== '>' && line.text !== '> ') return false
+            // Replace "> " with "\n" so the current line becomes empty and
+            // the cursor lands on the new blank line below it.
+            v.dispatch({
+              changes:        { from: line.from, to: line.to, insert: '\n' },
+              selection:      { anchor: line.from + 1 },
+              scrollIntoView: true,
+            })
+            return true
+          },
+        }])),
         markdown({ codeLanguages: languages, extensions: [Strikethrough] }),
         getMossTheme(false),
         getMossHighlighting(),
@@ -259,6 +280,80 @@
     border-radius: 4px;
     padding: 1px 5px;
   }
+
+  /* ── Callout blocks (line-decoration approach) ───────────────────────── */
+  :global(.cm-moss-callout-line) {
+    border-left: 3px solid;
+    padding-left: 16px !important;
+  }
+  :global(.cm-moss-callout-first) {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    padding-top: 5px !important;
+  }
+  :global(.cm-moss-callout-last) {
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    padding-bottom: 5px !important;
+  }
+  :global(.cm-moss-callout-only) {
+    border-radius: var(--radius-md);
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+  /* variant backgrounds + borders */
+  :global(.cm-moss-callout-line-info) {
+    background: var(--callout-info-bg);
+    border-color: var(--callout-info-border);
+    color: var(--callout-info-color);
+  }
+  :global(.cm-moss-callout-line-tip) {
+    background: var(--callout-tip-bg);
+    border-color: var(--callout-tip-border);
+    color: var(--callout-tip-color);
+  }
+  :global(.cm-moss-callout-line-success) {
+    background: var(--callout-success-bg);
+    border-color: var(--callout-success-border);
+    color: var(--callout-success-color);
+  }
+  :global(.cm-moss-callout-line-warning) {
+    background: var(--callout-warning-bg);
+    border-color: var(--callout-warning-border);
+    color: var(--callout-warning-color);
+  }
+  :global(.cm-moss-callout-line-danger) {
+    background: var(--callout-danger-bg);
+    border-color: var(--callout-danger-border);
+    color: var(--callout-danger-color);
+  }
+  :global(.cm-moss-callout-line-example) {
+    background: var(--callout-example-bg);
+    border-color: var(--callout-example-border);
+    color: var(--callout-example-color);
+  }
+  :global(.cm-moss-callout-line-quote) {
+    background: var(--callout-quote-bg);
+    border-color: var(--callout-quote-border);
+    color: var(--callout-quote-color);
+    font-style: italic;
+  }
+  /* inline header widget (icon + label) */
+  :global(.cm-moss-callout-type) {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+  :global(.cm-moss-callout-type-info)    { color: var(--callout-info-border); }
+  :global(.cm-moss-callout-type-tip)     { color: var(--callout-tip-border); }
+  :global(.cm-moss-callout-type-success) { color: var(--callout-success-border); }
+  :global(.cm-moss-callout-type-warning) { color: var(--callout-warning-border); }
+  :global(.cm-moss-callout-type-danger)  { color: var(--callout-danger-border); }
+  :global(.cm-moss-callout-type-example) { color: var(--callout-example-border); }
+  :global(.cm-moss-callout-type-quote)   { color: var(--callout-quote-border); }
 
   /* ── Floating toolbar ─────────────────────────────────────────────── */
   :global(.cm-moss-float-toolbar) {

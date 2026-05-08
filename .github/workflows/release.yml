@@ -94,6 +94,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: List release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release view ${{ github.ref_name }} --repo ${{ github.repository }} --json assets --jq '.assets[].name'
+
       - name: Download latest.json from release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -116,6 +116,78 @@ const cls = {
 // make it a heading mark instead).
 const TAG_RE = /(?<![&\w])#(\p{L}[\p{L}\p{N}_\-/]*)/gu
 
+// ── Callout blocks ────────────────────────────────────────────────────────────
+
+interface CalloutMeta {
+  label: string
+  variant: 'info' | 'tip' | 'success' | 'warning' | 'danger' | 'example' | 'quote'
+  icon: string
+}
+
+const CALLOUT_MAP: Record<string, CalloutMeta> = {
+  note:      { label: 'Note',      variant: 'info',    icon: 'ℹ' },
+  abstract:  { label: 'Abstract',  variant: 'info',    icon: '≡' },
+  summary:   { label: 'Summary',   variant: 'info',    icon: '≡' },
+  tldr:      { label: 'TL;DR',     variant: 'info',    icon: '≡' },
+  info:      { label: 'Info',      variant: 'info',    icon: 'ℹ' },
+  todo:      { label: 'To-Do',     variant: 'info',    icon: '○' },
+  tip:       { label: 'Tip',       variant: 'tip',     icon: '✦' },
+  hint:      { label: 'Hint',      variant: 'tip',     icon: '✦' },
+  important: { label: 'Important', variant: 'tip',     icon: '✦' },
+  success:   { label: 'Success',   variant: 'success', icon: '✓' },
+  check:     { label: 'Check',     variant: 'success', icon: '✓' },
+  done:      { label: 'Done',      variant: 'success', icon: '✓' },
+  question:  { label: 'Question',  variant: 'warning', icon: '?' },
+  help:      { label: 'Help',      variant: 'warning', icon: '?' },
+  faq:       { label: 'FAQ',       variant: 'warning', icon: '?' },
+  warning:   { label: 'Warning',   variant: 'warning', icon: '⚠' },
+  caution:   { label: 'Caution',   variant: 'warning', icon: '⚠' },
+  attention: { label: 'Attention', variant: 'warning', icon: '⚠' },
+  failure:   { label: 'Failure',   variant: 'danger',  icon: '✕' },
+  fail:      { label: 'Fail',      variant: 'danger',  icon: '✕' },
+  missing:   { label: 'Missing',   variant: 'danger',  icon: '✕' },
+  danger:    { label: 'Danger',    variant: 'danger',  icon: '⚡' },
+  error:     { label: 'Error',     variant: 'danger',  icon: '✕' },
+  bug:       { label: 'Bug',       variant: 'danger',  icon: '⚠' },
+  example:   { label: 'Example',   variant: 'example', icon: '◈' },
+  quote:     { label: 'Quote',     variant: 'quote',   icon: '❝' },
+  cite:      { label: 'Cite',      variant: 'quote',   icon: '❝' },
+}
+
+const CALLOUT_HEADER_RE = /^> \[!(\w+)\](?:[ \t](.+))?$/
+
+interface CalloutLineData {
+  variant: string
+  pos: 'first' | 'mid' | 'last' | 'only'
+  // set only on the header line
+  replaceLen?: number
+  icon?: string
+  label?: string
+}
+
+class CalloutHeaderWidget extends WidgetType {
+  constructor(
+    readonly icon: string,
+    readonly label: string,
+    readonly variant: string
+  ) { super() }
+
+  toDOM(): HTMLElement {
+    const span = document.createElement('span')
+    span.className = `cm-moss-callout-type cm-moss-callout-type-${this.variant}`
+    const iconEl = document.createElement('span')
+    iconEl.setAttribute('aria-hidden', 'true')
+    iconEl.textContent = this.icon + ' '
+    span.appendChild(iconEl)
+    span.appendChild(document.createTextNode(this.label))
+    return span
+  }
+
+  eq(other: CalloutHeaderWidget): boolean {
+    return this.icon === other.icon && this.label === other.label && this.variant === other.variant
+  }
+}
+
 function buildDecorations(view: EditorView): DecorationSet {
   const { state } = view
 
@@ -128,6 +200,66 @@ function buildDecorations(view: EditorView): DecorationSet {
       if (lineNum >= fromLine && lineNum <= toLine) return true
     }
     return false
+  }
+
+  // ── Pre-scan entire document for callout blocks ───────────────────────────
+  // Must happen before the syntax-tree walk so Blockquote/QuoteMark nodes can
+  // detect they are part of a callout and skip their default decoration.
+  const calloutLineData = new Map<number, CalloutLineData>()
+  const calloutCursorBlocks = new Set<number>()  // line numbers whose block has cursor
+
+  for (let scanLn = 1; scanLn <= state.doc.lines; ) {
+    const line = state.doc.line(scanLn)
+    const m = CALLOUT_HEADER_RE.exec(line.text)
+    if (!m) { scanLn++; continue }
+
+    const rawType = m[1].toLowerCase()
+    const customTitle = m[2]?.trim() ?? ''
+    const meta = CALLOUT_MAP[rawType] ?? {
+      label: rawType.charAt(0).toUpperCase() + rawType.slice(1),
+      variant: 'info' as const,
+      icon: 'ℹ',
+    }
+
+    const bodyLineNums: number[] = []
+    let next = scanLn + 1
+    while (next <= state.doc.lines) {
+      const t = state.doc.line(next).text
+      if (t === '>' || t.startsWith('> ')) { bodyLineNums.push(next); next++ }
+      else break
+    }
+    // Trim trailing empty body lines (auto-continued "> " lines from markdown extension)
+    while (bodyLineNums.length > 0) {
+      const t = state.doc.line(bodyLineNums[bodyLineNums.length - 1]).text
+      if (t === '>' || t === '> ') bodyLineNums.pop()
+      else break
+    }
+
+    const endLn = bodyLineNums.length > 0 ? bodyLineNums[bodyLineNums.length - 1] : scanLn
+    const hasBody = bodyLineNums.length > 0
+
+    let blockHasCursor = false
+    for (let l = scanLn; l <= endLn; l++) {
+      if (onCursorLine(state.doc.line(l).from)) { blockHasCursor = true; break }
+    }
+    if (blockHasCursor) {
+      for (let l = scanLn; l <= endLn; l++) calloutCursorBlocks.add(l)
+    }
+
+    calloutLineData.set(scanLn, {
+      variant: meta.variant,
+      pos: hasBody ? 'first' : 'only',
+      icon: meta.icon,
+      label: customTitle || meta.label,
+    })
+    for (let i = 0; i < bodyLineNums.length; i++) {
+      calloutLineData.set(bodyLineNums[i], {
+        variant: meta.variant,
+        pos: i === bodyLineNums.length - 1 ? 'last' : 'mid',
+      })
+    }
+
+    scanLn = endLn + 1
   }
 
   // Collect all entries before adding to the builder.
@@ -198,7 +330,11 @@ function buildDecorations(view: EditorView): DecorationSet {
           }
           break
         }
-        case 'Link':     if (!onCursorLine(from)) entries.push([from, to, cls.link]); break
+        case 'Link': {
+          if (/^> \[!/.test(state.doc.lineAt(from).text)) break
+          if (!onCursorLine(from)) entries.push([from, to, cls.link])
+          break
+        }
         case 'Image': {
           if (!onCursorLine(from)) {
             // Extract URL from the URL child node to avoid capturing an optional title attribute.
@@ -216,6 +352,8 @@ function buildDecorations(view: EditorView): DecorationSet {
         case 'LinkMark': {
           // Skip marks that are children of an Image — the Image node is replaced wholesale
           if (node.node.parent?.name === 'Image') break
+          // Don't style/hide [!TYPE] brackets on callout header lines
+          if (/^> \[!/.test(state.doc.lineAt(from).text)) break
           // Don't hide [ or ] that belong to a task marker pattern [ ] / [x]
           const ch = state.doc.sliceString(from, to)
           if (ch === '[') {
@@ -229,7 +367,9 @@ function buildDecorations(view: EditorView): DecorationSet {
           break
         }
         case 'URL': {
-          if (node.node.parent?.name !== 'Image') hideOrMute(from, to)
+          if (node.node.parent?.name !== 'Image') {
+            if (!/^> \[!/.test(state.doc.lineAt(from).text)) hideOrMute(from, to)
+          }
           break
         }
         case 'ListMark': {
@@ -246,8 +386,16 @@ function buildDecorations(view: EditorView): DecorationSet {
           }
           break
         }
-        case 'Blockquote': entries.push([from, from, cls.blockquote]); break
-        case 'QuoteMark':  hideOrMute(from, to); break
+        case 'Blockquote': {
+          if (calloutLineData.has(state.doc.lineAt(from).number)) break
+          entries.push([from, from, cls.blockquote])
+          break
+        }
+        case 'QuoteMark': {
+          if (calloutLineData.has(state.doc.lineAt(from).number)) break
+          hideOrMute(from, to)
+          break
+        }
       }
     },
   })
@@ -271,6 +419,35 @@ function buildDecorations(view: EditorView): DecorationSet {
     const checked    = match[1] !== '[ ]'
     if (!onCursorLine(markerFrom)) {
       entries.push([markerFrom, markerTo, Decoration.replace({ widget: new CheckboxWidget(checked, markerFrom) })])
+    }
+  }
+
+  // ── Callout line decorations ─────────────────────────────────────────────
+  // Each callout line gets a line-class decoration (background + left border)
+  // and — when the cursor is not inside the block — an inline replacement that
+  // hides the raw `> [!TYPE] Title` / `> ` prefixes.
+  for (const [lineNum, data] of calloutLineData) {
+    const line = state.doc.line(lineNum)
+    // Skip lines outside the current viewport
+    if (line.from > view.viewport.to || line.to < view.viewport.from) continue
+
+    if (calloutCursorBlocks.has(lineNum)) continue
+
+    entries.push([line.from, line.from, Decoration.line({
+      class: `cm-moss-callout-line cm-moss-callout-${data.pos} cm-moss-callout-line-${data.variant}`,
+    })])
+
+    {
+      if (data.pos === 'first' || data.pos === 'only') {
+        // Replace the entire `> [!TYPE] Title` line content with the header widget
+        entries.push([line.from, line.to, Decoration.replace({
+          widget: new CalloutHeaderWidget(data.icon!, data.label!, data.variant),
+        })])
+      } else {
+        // Hide the `> ` prefix so only the body text is visible
+        const prefixEnd = line.text.startsWith('> ') ? line.from + 2 : line.from + 1
+        entries.push([line.from, prefixEnd, cls.hidden])
+      }
     }
   }
 

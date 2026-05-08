@@ -10,6 +10,8 @@ on:
 jobs:
   publish-update-manifest:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: List release assets

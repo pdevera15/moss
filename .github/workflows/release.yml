@@ -95,16 +95,9 @@ jobs:
 
     steps:
       - name: Download latest.json from release
-        run: |
-          curl -sL \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/octet-stream" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$(
-              curl -sL \
-                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-                "https://api.github.com/repos/${{ github.repository }}/releases/${{ needs.create-release.outputs.release_id }}/assets" \
-              | jq -r '.[] | select(.name == "latest.json") | .id'
-            )" > latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download ${{ github.ref_name }} --pattern "latest.json" --repo ${{ github.repository }}
 
       - name: Push to public updates repo
         uses: dmnemec/copy_file_to_another_repo_action@main

@@ -92,6 +92,8 @@ jobs:
   publish-update-manifest:
     needs: [create-release, build, publish-release]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: List release assets

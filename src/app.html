@@ -5,17 +5,97 @@
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- DM Serif Display (titles) + Lora (body) from Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Lora:ital,wght@0,400..700;1,400..700&display=swap"
-      rel="stylesheet"
-    />
+<style>
+      #moss-splash {
+        position: fixed;
+        inset: 0;
+        background: #FAFAF8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.35s ease;
+      }
+      #moss-splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      @keyframes sway1 { 0%,100%{transform:rotate(-5deg) translateX(0)} 50%{transform:rotate(5deg) translateX(2px)} }
+      @keyframes sway2 { 0%,100%{transform:rotate(4deg)} 50%{transform:rotate(-4deg)} }
+      @keyframes sway3 { 0%,100%{transform:rotate(-3deg) translateX(-1px)} 50%{transform:rotate(6deg) translateX(1px)} }
+      @keyframes sway4 { 0%,100%{transform:rotate(6deg)} 50%{transform:rotate(-5deg)} }
+      @keyframes sway5 { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(3deg)} }
+      @keyframes floatup { 0%,100%{transform:translateY(0) scale(1);opacity:.5} 50%{transform:translateY(-14px) scale(1.15);opacity:1} }
+      @keyframes groundpulse { 0%,100%{opacity:.4} 50%{opacity:.7} }
+    </style>
 
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">
+
+    <div id="moss-splash">
+      <svg width="300" height="200" viewBox="0 0 300 200">
+        <ellipse cx="150" cy="185" rx="120" ry="10" fill="#27500A" style="animation:groundpulse 3s ease-in-out infinite"/>
+        <g style="transform-origin:68px 175px;animation:sway5 4.1s ease-in-out infinite">
+          <path d="M68 175 Q60 155 55 135 Q50 115 58 100" stroke="#3B6D11" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <ellipse cx="58" cy="98" rx="18" ry="10" fill="#639922" transform="rotate(-30 58 98)"/>
+          <ellipse cx="48" cy="118" rx="14" ry="8" fill="#97C459" transform="rotate(-45 48 118)"/>
+        </g>
+        <g style="transform-origin:95px 178px;animation:sway2 3.5s ease-in-out .3s infinite">
+          <path d="M95 178 Q88 155 90 130 Q92 110 88 92" stroke="#27500A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="88" cy="90" rx="16" ry="9" fill="#3B6D11" transform="rotate(-15 88 90)"/>
+          <ellipse cx="82" cy="112" rx="13" ry="7" fill="#639922" transform="rotate(-35 82 112)"/>
+          <ellipse cx="96" cy="105" rx="12" ry="7" fill="#97C459" transform="rotate(20 96 105)"/>
+        </g>
+        <g style="transform-origin:130px 180px;animation:sway3 3.8s ease-in-out .7s infinite">
+          <path d="M130 180 Q125 155 128 128 Q130 105 126 85" stroke="#3B6D11" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <ellipse cx="126" cy="83" rx="20" ry="11" fill="#97C459" transform="rotate(-10 126 83)"/>
+          <ellipse cx="118" cy="108" rx="16" ry="9" fill="#639922" transform="rotate(-40 118 108)"/>
+          <ellipse cx="136" cy="118" rx="13" ry="7" fill="#C0DD97" transform="rotate(25 136 118)"/>
+        </g>
+        <g style="transform-origin:155px 180px;animation:sway1 4.3s ease-in-out 0s infinite">
+          <path d="M155 180 Q150 148 152 118 Q154 92 150 68" stroke="#27500A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="150" cy="66" rx="22" ry="12" fill="#639922"/>
+          <ellipse cx="140" cy="92" rx="17" ry="10" fill="#97C459" transform="rotate(-30 140 92)"/>
+          <ellipse cx="163" cy="100" rx="15" ry="9" fill="#3B6D11" transform="rotate(25 163 100)"/>
+          <ellipse cx="144" cy="118" rx="14" ry="8" fill="#C0DD97" transform="rotate(-20 144 118)"/>
+        </g>
+        <g style="transform-origin:182px 178px;animation:sway4 3.6s ease-in-out .5s infinite">
+          <path d="M182 178 Q188 155 185 130 Q183 108 188 90" stroke="#3B6D11" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <ellipse cx="188" cy="88" rx="19" ry="10" fill="#3B6D11" transform="rotate(12 188 88)"/>
+          <ellipse cx="194" cy="112" rx="14" ry="8" fill="#639922" transform="rotate(40 194 112)"/>
+          <ellipse cx="178" cy="108" rx="12" ry="7" fill="#97C459" transform="rotate(-20 178 108)"/>
+        </g>
+        <g style="transform-origin:212px 176px;animation:sway2 4s ease-in-out 1s infinite">
+          <path d="M212 176 Q220 156 222 135 Q224 115 218 98" stroke="#27500A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="218" cy="96" rx="17" ry="9" fill="#639922" transform="rotate(20 218 96)"/>
+          <ellipse cx="226" cy="118" rx="13" ry="7" fill="#97C459" transform="rotate(40 226 118)"/>
+        </g>
+        <g style="transform-origin:238px 174px;animation:sway5 3.7s ease-in-out .2s infinite">
+          <path d="M238 174 Q248 155 250 135 Q252 115 245 100" stroke="#3B6D11" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <ellipse cx="245" cy="98" rx="18" ry="10" fill="#97C459" transform="rotate(25 245 98)"/>
+          <ellipse cx="252" cy="120" rx="14" ry="8" fill="#3B6D11" transform="rotate(45 252 120)"/>
+          <ellipse cx="238" cy="115" rx="12" ry="7" fill="#C0DD97" transform="rotate(-15 238 115)"/>
+        </g>
+        <circle cx="72" cy="88" r="5" fill="#EAF3DE" style="animation:floatup 2.8s ease-in-out infinite;transform-origin:72px 88px"/>
+        <circle cx="110" cy="72" r="4" fill="#C0DD97" style="animation:floatup 3.1s ease-in-out .6s infinite;transform-origin:110px 72px"/>
+        <circle cx="175" cy="48" r="6" fill="#97C459" style="animation:floatup 3.4s ease-in-out .2s infinite;transform-origin:175px 48px"/>
+        <circle cx="220" cy="78" r="4" fill="#EAF3DE" style="animation:floatup 2.9s ease-in-out 1s infinite;transform-origin:220px 78px"/>
+        <circle cx="255" cy="90" r="3.5" fill="#C0DD97" style="animation:floatup 3.2s ease-in-out .4s infinite;transform-origin:255px 90px"/>
+        <circle cx="40" cy="115" r="3" fill="#97C459" style="animation:floatup 3.6s ease-in-out .8s infinite;transform-origin:40px 115px"/>
+      </svg>
+    </div>
+
     <div style="display: contents">%sveltekit.body%</div>
+
+    <script>
+      // Remove splash once the app has mounted
+      window.__removeSplash = function() {
+        var el = document.getElementById('moss-splash');
+        if (!el) return;
+        el.classList.add('fade-out');
+        setTimeout(function() { el.remove(); }, 400);
+      };
+    </script>
   </body>
 </html>

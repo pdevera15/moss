@@ -25,7 +25,7 @@
 
   // ── Inline title editing ─────────────────────────────────────────────
   let editing      = $state(false)
-  let editTitle    = $state(task.title)
+  let editTitle    = $state('')
   let titleInputEl = $state<HTMLInputElement | null>(null)
 
   $effect(() => {

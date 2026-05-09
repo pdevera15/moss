@@ -24,16 +24,25 @@ jobs:
 
       - name: Generate changelog
         id: cl
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n1)
+          PREV=$(gh release list --exclude-drafts --limit 20 --json tagName \
+            --jq '[.[].tagName | select(. != "${{ github.ref_name }}")] | first' \
+            2>/dev/null || true)
+          # Fall back to previous tag if no prior release exists yet
+          [ -z "$PREV" ] && PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n1)
           RANGE="${PREV:+$PREV..}HEAD"
-          FEATURES=$(git log --pretty=format:"%s" $RANGE | grep "^feat" | sed 's/^feat[^:]*: /- /')
-          FIXES=$(git log --pretty=format:"%s" $RANGE | grep "^fix" | sed 's/^fix[^:]*: /- /')
+          FEATURES=$(git log --pretty=format:"%s" $RANGE | grep "^feat" | sed 's/^feat[^:]*: /- /' || true)
+          FIXES=$(git log --pretty=format:"%s" $RANGE | grep "^fix" | sed 's/^fix[^:]*: /- /' || true)
+          OTHERS=$(git log --pretty=format:"%s" $RANGE | grep -v "^feat\|^fix\|^build\|^chore\|^Merge" | sed 's/^[a-z]*[^:]*: /- /' || true)
           {
             echo 'body<<EOF'
             [ -n "$FEATURES" ] && printf "### New\n%s\n" "$FEATURES"
             [ -n "$FEATURES" ] && [ -n "$FIXES" ] && echo ""
             [ -n "$FIXES" ]    && printf "### Fixed\n%s\n" "$FIXES"
+            [ -n "$OTHERS" ]   && [ -n "$FEATURES$FIXES" ] && echo ""
+            [ -n "$OTHERS" ]   && printf "### Changes\n%s\n" "$OTHERS"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 

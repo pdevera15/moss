@@ -505,7 +505,7 @@
 
   .version-row {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 8px;
     margin-bottom: 4px;
     flex-wrap: wrap;

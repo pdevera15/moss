@@ -66,17 +66,6 @@ function displayLang(raw: string): string {
   return LANG_NAMES[key] ?? (raw.charAt(0).toUpperCase() + raw.slice(1))
 }
 
-class HRWidget extends WidgetType {
-  toDOM(): HTMLElement {
-    const div = document.createElement('div')
-    div.className = 'cm-moss-hr'
-    div.setAttribute('aria-hidden', 'true')
-    return div
-  }
-  eq(): boolean { return true }
-  ignoreEvent(): boolean { return false }
-}
-
 class ImageWidget extends WidgetType {
   constructor(readonly src: string, readonly alt: string) { super() }
   toDOM(): HTMLElement {
@@ -110,6 +99,7 @@ const cls = {
   orderedMark:   Decoration.mark({ class: 'cm-moss-ordered-mark' }),
   tag:           Decoration.mark({ class: 'cm-moss-tag' }),
   hidden:        Decoration.replace({}),
+  hrLine:        Decoration.line({ class: 'cm-moss-hr' }),
   fencedLine:    Decoration.line({ class: 'cm-moss-fenced-line' }),
   fenceClose:    Decoration.line({ class: 'cm-moss-fence-close' }),
 }
@@ -285,9 +275,10 @@ function buildDecorations(view: EditorView): DecorationSet {
       const { from, to, name } = node
 
       switch (name) {
-        case 'ATXHeading1': entries.push([from, from, cls.h1]); break
-        case 'ATXHeading2': entries.push([from, from, cls.h2]); break
-        case 'ATXHeading3': entries.push([from, from, cls.h3]); break
+        case 'ATXHeading1':
+        case 'ATXHeading2':
+        case 'ATXHeading3':
+          break
         case 'HeaderMark': {
           // +1 to include the space after #, clamped to line end
           const lineEnd = state.doc.lineAt(from).to
@@ -303,7 +294,7 @@ function buildDecorations(view: EditorView): DecorationSet {
         case 'StrikethroughMark': hideOrMute(from, to); break
         case 'FencedCode': {
           const firstLine = state.doc.lineAt(from)
-          const lastLine  = state.doc.lineAt(to)
+          const lastLine  = state.doc.lineAt(Math.max(from, to - 1))
           // Reveal raw fence markers when cursor is anywhere inside the block
           const cursorInBlock = state.selection.ranges.some(range => {
             const ln = state.doc.lineAt(range.from).number
@@ -330,7 +321,9 @@ function buildDecorations(view: EditorView): DecorationSet {
           // Closing fence line always gets background; collapse when cursor not in block
           if (lastLine.number !== firstLine.number) {
             entries.push([lastLine.from, lastLine.from, cls.fencedLine])
-            if (!cursorInBlock) entries.push([lastLine.from, lastLine.from, cls.fenceClose])
+            if (!cursorInBlock && /^[ \t]*(```+|~~~+)[ \t]*$/.test(lastLine.text)) {
+              entries.push([lastLine.from, lastLine.from, cls.fenceClose])
+            }
           }
           break
         }
@@ -486,8 +479,6 @@ const inlineDecorations = ViewPlugin.fromClass(
   { decorations: v => v.decorations }
 )
 
-// Block decorations (block: true) must live in a StateField — ViewPlugin
-// does not support them and CM6 will throw at construction time.
 function buildHRDecorations(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>()
   const cursorLines = new Set<number>()
@@ -502,8 +493,8 @@ function buildHRDecorations(state: EditorState): DecorationSet {
       if (node.name !== 'HorizontalRule') return
       const line = state.doc.lineAt(node.from)
       if (cursorLines.has(line.number)) return
-      const end = line.number < state.doc.lines ? line.to + 1 : line.to
-      builder.add(line.from, end, Decoration.replace({ widget: new HRWidget(), block: true }))
+      builder.add(line.from, line.from, cls.hrLine)
+      builder.add(node.from, node.to, cls.hidden)
     },
   })
 
@@ -514,6 +505,37 @@ const hrDecorations = StateField.define<DecorationSet>({
   create(state) { return buildHRDecorations(state) },
   update(deco, tr) {
     if (tr.docChanged || tr.selection) return buildHRDecorations(tr.state)
+    return deco
+  },
+  provide(f) { return EditorView.decorations.from(f) },
+})
+
+function buildHeadingDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>()
+
+  syntaxTree(state).iterate({
+    enter(node) {
+      switch (node.name) {
+        case 'ATXHeading1':
+          builder.add(node.from, node.from, cls.h1)
+          break
+        case 'ATXHeading2':
+          builder.add(node.from, node.from, cls.h2)
+          break
+        case 'ATXHeading3':
+          builder.add(node.from, node.from, cls.h3)
+          break
+      }
+    },
+  })
+
+  return builder.finish()
+}
+
+const headingDecorations = StateField.define<DecorationSet>({
+  create(state) { return buildHeadingDecorations(state) },
+  update(deco, tr) {
+    if (tr.docChanged) return buildHeadingDecorations(tr.state)
     return deco
   },
   provide(f) { return EditorView.decorations.from(f) },
@@ -689,4 +711,4 @@ const tableDecorations = StateField.define<DecorationSet>({
   provide(f) { return EditorView.decorations.from(f) },
 })
 
-export const markdownDecorations = [inlineDecorations, hrDecorations, tableDecorations]
+export const markdownDecorations = [headingDecorations, inlineDecorations, hrDecorations, tableDecorations]

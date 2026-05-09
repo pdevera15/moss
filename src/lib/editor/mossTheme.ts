@@ -39,14 +39,17 @@ export function buildMossTheme(dark = false) {
         fontFamily: 'var(--font-body)',
         fontSize: '15px',
         lineHeight: '1.85',
-        padding: '48px 64px',
         overflowX: 'hidden',
+      },
+      '.cm-line': {
+        lineHeight: '1.85',
+        padding: '0 64px',
       },
       '.cm-content': {
         maxWidth: '760px',
         margin: '0 auto',
         caretColor: 'var(--color-amber)',
-        padding: '0',
+        padding: '48px 0',
       },
       '.cm-cursor, .cm-dropCursor': {
         borderLeftColor: 'var(--color-amber)',
@@ -72,9 +75,6 @@ export function buildMossTheme(dark = false) {
       '.cm-placeholder': {
         color: 'var(--color-text-faint)',
         fontStyle: 'italic',
-      },
-      '.cm-line': {
-        padding: '0',
       },
     },
     { dark }

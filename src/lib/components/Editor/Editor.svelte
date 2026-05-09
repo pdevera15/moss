@@ -83,6 +83,10 @@
         EditorView.lineWrapping,
         cmPlaceholder(placeholder),
         EditorView.updateListener.of(update => {
+          if (!update.docChanged && !update.selectionSet && !update.viewportChanged) return
+          requestAnimationFrame(() => update.view.requestMeasure())
+        }),
+        EditorView.updateListener.of(update => {
           if (update.docChanged && !isExternalUpdate) {
             const newValue = update.state.doc.toString()
             value = newValue
@@ -142,20 +146,17 @@
     font-size: 28px;
     font-weight: 400;
     letter-spacing: -0.025em;
-    line-height: 1.2;
   }
   :global(.cm-moss-h2) {
     font-family: var(--font-title);
     font-size: 22px;
     font-weight: 400;
     letter-spacing: -0.015em;
-    line-height: 1.3;
   }
   :global(.cm-moss-h3) {
     font-family: var(--font-title);
     font-size: 18px;
     font-weight: 400;
-    line-height: 1.4;
   }
 
   /* ── Inline decorations ───────────────────────────────────────────── */
@@ -196,12 +197,15 @@
   /* Opening fence line: hide the ``` text, show language via ::before */
   :global(.cm-moss-fence-open) {
     color: transparent !important;
-    background: var(--color-surface);
     overflow: hidden;
+    position: relative;
   }
   :global(.cm-moss-fence-open::before) {
     content: attr(data-lang);
-    display: inline-block;
+    display: block;
+    position: absolute;
+    top: 4px;
+    right: 68px;
     font-family: var(--font-mono);
     font-size: 10px;
     line-height: 1;
@@ -213,8 +217,6 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     user-select: none;
-    float: right;
-    margin: 4px 10px 4px 0;
   }
   /* Closing fence line: fully collapsed */
   :global(.cm-moss-fence-close) {
@@ -222,16 +224,31 @@
     overflow: hidden;
   }
   :global(.cm-moss-fenced-line) {
-    background: var(--color-surface);
+    background:
+      linear-gradient(
+        to right,
+        transparent 0 64px,
+        var(--color-surface) 64px calc(100% - 64px),
+        transparent calc(100% - 64px)
+    );
     font-family: var(--font-mono);
     font-size: 13px;
-    display: block;
+    padding-left: 76px !important;
+    padding-right: 76px !important;
   }
   :global(.cm-moss-hr) {
+    color: transparent;
+    position: relative;
+  }
+  :global(.cm-moss-hr::after) {
+    content: '';
+    position: absolute;
+    left: 64px;
+    right: 64px;
+    top: 50%;
     border-top: 1.5px solid var(--color-border);
-    margin: var(--space-2) 0;
-    width: 100%;
-    display: block;
+    transform: translateY(-50%);
+    pointer-events: none;
   }
 
   :global(.cm-moss-image) {

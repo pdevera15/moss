@@ -387,8 +387,15 @@ function buildDecorations(view: EditorView): DecorationSet {
           break
         }
         case 'Blockquote': {
-          if (calloutLineData.has(state.doc.lineAt(from).number)) break
-          entries.push([from, from, cls.blockquote])
+          const firstLineNum = state.doc.lineAt(from).number
+          if (calloutLineData.has(firstLineNum)) break
+          const lastLineNum = state.doc.lineAt(to).number
+          for (let ln = firstLineNum; ln <= lastLineNum; ln++) {
+            if (!calloutLineData.has(ln)) {
+              const line = state.doc.line(ln)
+              entries.push([line.from, line.from, cls.blockquote])
+            }
+          }
           break
         }
         case 'QuoteMark': {

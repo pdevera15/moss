@@ -5,7 +5,7 @@
   import { history, historyKeymap, defaultKeymap, indentWithTab } from '@codemirror/commands'
   import { markdown } from '@codemirror/lang-markdown'
   import { languages } from '@codemirror/language-data'
-  import { Strikethrough } from '@lezer/markdown'
+  import { Strikethrough, Table } from '@lezer/markdown'
   import { getMossTheme, getMossHighlighting } from '$lib/editor/mossTheme'
   import { markdownDecorations } from '$lib/editor/markdownDecorations'
   import { floatingToolbar, markdownKeymap, rightClickGuard } from '$lib/editor/floatingToolbar'
@@ -72,7 +72,7 @@
             return true
           },
         }])),
-        markdown({ codeLanguages: languages, extensions: [Strikethrough] }),
+        markdown({ codeLanguages: languages, extensions: [Strikethrough, Table] }),
         getMossTheme(false),
         getMossHighlighting(),
         markdownDecorations,
@@ -356,6 +356,37 @@
   :global(.cm-moss-callout-type-danger)  { color: var(--callout-danger-border); }
   :global(.cm-moss-callout-type-example) { color: var(--callout-example-border); }
   :global(.cm-moss-callout-type-quote)   { color: var(--callout-quote-border); }
+
+  /* ── Tables (GFM) ─────────────────────────────────────────────────── */
+  :global(.cm-moss-table-wrapper) {
+    margin: var(--space-3) 0;
+    overflow-x: auto;
+    user-select: text;
+  }
+  :global(.cm-moss-table) {
+    border-collapse: collapse;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    line-height: 1.6;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  :global(.cm-moss-table th),
+  :global(.cm-moss-table td) {
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
+    text-align: left;
+    vertical-align: top;
+  }
+  :global(.cm-moss-table th) {
+    font-weight: 600;
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+  :global(.cm-moss-table tbody tr:nth-child(even) td) {
+    background: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  }
 
   /* ── Floating toolbar ─────────────────────────────────────────────── */
   :global(.cm-moss-float-toolbar) {

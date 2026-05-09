@@ -508,4 +508,174 @@ const hrDecorations = StateField.define<DecorationSet>({
   provide(f) { return EditorView.decorations.from(f) },
 })
 
-export const markdownDecorations = [inlineDecorations, hrDecorations]
+// ── Tables (GFM) ─────────────────────────────────────────────────────────────
+// When the cursor is outside the Table block, the raw `| a | b |` lines are
+// replaced wholesale with a rendered HTML table. Editing the source brings the
+// raw markdown back, mirroring how FencedCode toggles open/closed.
+
+type Align = 'left' | 'center' | 'right' | null
+
+function splitTableRow(line: string): string[] {
+  let s = line.trim()
+  if (s.startsWith('|')) s = s.slice(1)
+  if (s.endsWith('|')) s = s.slice(0, -1)
+  const cells: string[] = []
+  let buf = ''
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+    if (ch === '\\' && s[i + 1] === '|') { buf += '|'; i++; continue }
+    if (ch === '|') { cells.push(buf.trim()); buf = ''; continue }
+    buf += ch
+  }
+  cells.push(buf.trim())
+  return cells
+}
+
+function parseAlignments(delimLine: string): Align[] {
+  return splitTableRow(delimLine).map(c => {
+    const left = c.startsWith(':')
+    const right = c.endsWith(':')
+    if (left && right) return 'center'
+    if (right) return 'right'
+    if (left) return 'left'
+    return null
+  })
+}
+
+// Inline parsing limited to what's safe to render via DOM construction:
+// code, bold, italic, strikethrough, links. No innerHTML — text is set via
+// textContent and `href` is sanitized against javascript: URLs.
+const INLINE_RE = /(`+)([^`]+?)\1|\*\*([^*\n]+)\*\*|__([^_\n]+)__|\*([^*\n]+)\*|(?<!\w)_([^_\n]+)_(?!\w)|~~([^~\n]+)~~|\[([^\]]+)\]\(([^)\s]+)\)/g
+
+function renderInline(parent: HTMLElement, text: string): void {
+  INLINE_RE.lastIndex = 0
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = INLINE_RE.exec(text)) !== null) {
+    if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)))
+    if (m[1]) {
+      const code = document.createElement('code')
+      code.className = 'cm-moss-code'
+      code.textContent = m[2]
+      parent.appendChild(code)
+    } else if (m[3] !== undefined || m[4] !== undefined) {
+      const b = document.createElement('strong')
+      b.textContent = (m[3] ?? m[4])!
+      parent.appendChild(b)
+    } else if (m[5] !== undefined || m[6] !== undefined) {
+      const i = document.createElement('em')
+      i.textContent = (m[5] ?? m[6])!
+      parent.appendChild(i)
+    } else if (m[7] !== undefined) {
+      const s = document.createElement('s')
+      s.className = 'cm-moss-strikethrough'
+      s.textContent = m[7]
+      parent.appendChild(s)
+    } else if (m[8] !== undefined && m[9] !== undefined) {
+      const a = document.createElement('a')
+      const url = m[9].trim()
+      if (!/^\s*javascript:/i.test(url)) a.href = url
+      a.textContent = m[8]
+      a.className = 'cm-moss-link'
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      parent.appendChild(a)
+    }
+    last = INLINE_RE.lastIndex
+  }
+  if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)))
+}
+
+class TableWidget extends WidgetType {
+  constructor(readonly source: string) { super() }
+
+  toDOM(): HTMLElement {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'cm-moss-table-wrapper'
+
+    const lines = this.source.split('\n').filter(l => l.trim().length > 0)
+    if (lines.length < 2) {
+      wrapper.textContent = this.source
+      return wrapper
+    }
+
+    const headerCells = splitTableRow(lines[0])
+    const aligns = parseAlignments(lines[1])
+    const bodyRows = lines.slice(2).map(splitTableRow)
+
+    const table = document.createElement('table')
+    table.className = 'cm-moss-table'
+
+    const thead = document.createElement('thead')
+    const headerRow = document.createElement('tr')
+    headerCells.forEach((cell, i) => {
+      const th = document.createElement('th')
+      const a = aligns[i]
+      if (a) th.style.textAlign = a
+      renderInline(th, cell)
+      headerRow.appendChild(th)
+    })
+    thead.appendChild(headerRow)
+    table.appendChild(thead)
+
+    if (bodyRows.length > 0) {
+      const tbody = document.createElement('tbody')
+      bodyRows.forEach(cells => {
+        const tr = document.createElement('tr')
+        // Pad short rows so column count matches the header
+        const n = Math.max(cells.length, headerCells.length)
+        for (let i = 0; i < n; i++) {
+          const td = document.createElement('td')
+          const a = aligns[i]
+          if (a) td.style.textAlign = a
+          renderInline(td, cells[i] ?? '')
+          tr.appendChild(td)
+        }
+        tbody.appendChild(tr)
+      })
+      table.appendChild(tbody)
+    }
+
+    wrapper.appendChild(table)
+    return wrapper
+  }
+
+  eq(other: TableWidget): boolean { return this.source === other.source }
+}
+
+function buildTableDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>()
+  const cursorLines = new Set<number>()
+  for (const range of state.selection.ranges) {
+    const fromLine = state.doc.lineAt(range.from).number
+    const toLine   = state.doc.lineAt(range.to).number
+    for (let ln = fromLine; ln <= toLine; ln++) cursorLines.add(ln)
+  }
+
+  syntaxTree(state).iterate({
+    enter(node) {
+      if (node.name !== 'Table') return
+      const firstLine = state.doc.lineAt(node.from)
+      const lastLine  = state.doc.lineAt(node.to)
+      for (let ln = firstLine.number; ln <= lastLine.number; ln++) {
+        if (cursorLines.has(ln)) return false
+      }
+      const source = state.doc.sliceString(firstLine.from, lastLine.to)
+      const end = lastLine.number < state.doc.lines ? lastLine.to + 1 : lastLine.to
+      builder.add(firstLine.from, end, Decoration.replace({ widget: new TableWidget(source), block: true }))
+      return false
+    },
+  })
+  return builder.finish()
+}
+
+const tableDecorations = StateField.define<DecorationSet>({
+  create(state) { return buildTableDecorations(state) },
+  update(deco, tr) {
+    if (tr.docChanged || tr.selection) return buildTableDecorations(tr.state)
+    return deco
+  },
+  provide(f) { return EditorView.decorations.from(f) },
+})
+
+export const markdownDecorations = [inlineDecorations, hrDecorations, tableDecorations]

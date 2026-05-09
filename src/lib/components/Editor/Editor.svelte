@@ -94,10 +94,21 @@
 
     view = new EditorView({ state, parent: container })
     view.focus()
+
+    // Custom fonts (Lora, DM Serif Display, Geist Mono) load asynchronously.
+    // CM6 measures line heights on mount using whatever font is rendered at
+    // that instant — usually a fallback with different metrics. The error is
+    // small per line but accumulates, so clicks land on the wrong line further
+    // down the document. Re-measuring after fonts are ready fixes it.
+    document.fonts.ready.then(() => { view?.requestMeasure() })
+    document.fonts.addEventListener('loadingdone', onFontsLoaded)
   })
+
+  function onFontsLoaded() { view?.requestMeasure() }
 
   onDestroy(() => {
     emitChange.cancel()
+    document.fonts.removeEventListener('loadingdone', onFontsLoaded)
     view?.destroy()
   })
 </script>
@@ -172,11 +183,6 @@
     border-left: 3px solid var(--color-border);
     padding-left: 12px;
     color: var(--color-text-muted);
-  }
-  :global(.cm-moss-marker) {
-    color: var(--color-text-faint);
-    font-family: var(--font-mono);
-    font-size: 13px;
   }
   :global(.cm-moss-bullet) {
     color: var(--color-moss-light);

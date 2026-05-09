@@ -17,6 +17,10 @@ class BulletWidget extends WidgetType {
     return span
   }
   eq(): boolean { return true }
+  // Return false so CM6 handles pointer events (positions cursor) instead of
+  // swallowing them — the default ignoreEvent() returns true which made clicking
+  // on a bullet not register in the editor.
+  ignoreEvent(): boolean { return false }
 }
 
 class CheckboxWidget extends WidgetType {
@@ -70,6 +74,7 @@ class HRWidget extends WidgetType {
     return div
   }
   eq(): boolean { return true }
+  ignoreEvent(): boolean { return false }
 }
 
 class ImageWidget extends WidgetType {
@@ -102,7 +107,6 @@ const cls = {
   code:          Decoration.mark({ class: 'cm-moss-code' }),
   link:          Decoration.mark({ class: 'cm-moss-link' }),
   blockquote:    Decoration.line({ class: 'cm-moss-blockquote' }),
-  marker:        Decoration.mark({ class: 'cm-moss-marker' }),
   orderedMark:   Decoration.mark({ class: 'cm-moss-ordered-mark' }),
   tag:           Decoration.mark({ class: 'cm-moss-tag' }),
   hidden:        Decoration.replace({}),
@@ -374,13 +378,13 @@ function buildDecorations(view: EditorView): DecorationSet {
         }
         case 'ListMark': {
           const markText = state.doc.sliceString(from, to)
-          if (onCursorLine(from)) {
-            entries.push([from, to, cls.marker])
-          } else if (/^\d+[.)]$/.test(markText)) {
-            // Ordered list: style the number, don't replace with a bullet
+          if (/^\d+[.)]$/.test(markText)) {
+            // Ordered list: style the number
             entries.push([from, to, cls.orderedMark])
           } else {
-            // Unordered list: replace `-`, `*`, `+` with a bullet widget
+            // Unordered list: replace `-`/`*`/`+` + trailing space with a bullet
+            // widget. ignoreEvent() returns false on BulletWidget so clicks still
+            // reach CM6 and position the cursor correctly.
             const lineEnd = state.doc.lineAt(from).to
             entries.push([from, Math.min(to + 1, lineEnd), Decoration.replace({ widget: new BulletWidget() })])
           }

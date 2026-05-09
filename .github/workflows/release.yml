@@ -162,6 +162,8 @@ jobs:
             "artifacts/Moss_aarch64.app.tar.gz.sig"
 
       - name: Build latest.json from release signatures
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG=${{ github.ref_name }}
           VERSION="${TAG#v}"
@@ -171,10 +173,14 @@ jobs:
           NSIS_SIG=$(cat "artifacts/Moss_${VERSION}_x64-setup.exe.sig" 2>/dev/null || echo "")
           MAC_SIG=$(cat "artifacts/Moss_aarch64.app.tar.gz.sig" 2>/dev/null || echo "")
 
+          gh release view "$TAG" --repo ${{ github.repository }} --json body --jq '.body' > notes.txt 2>/dev/null || echo "" > notes.txt
+
           node -e "
+          const fs = require('fs');
+          const notes = fs.readFileSync('notes.txt', 'utf8').trim();
           const m = {
             version: '$VERSION',
-            notes: '',
+            notes: notes,
             pub_date: '$(date -u +%Y-%m-%dT%H:%M:%S.000Z)',
             platforms: {
               'darwin-aarch64':      { signature: \`$MAC_SIG\`,   url: '$BASE/Moss_aarch64.app.tar.gz' },

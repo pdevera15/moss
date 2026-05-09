@@ -4,6 +4,7 @@
 
   let updateAvailable = $state(false)
   let updateVersion = $state('')
+  let updateNotes = $state('')
   let installing = $state(false)
   let installed = $state(false)
   let updateHandle: Awaited<ReturnType<typeof check>> = null
@@ -17,6 +18,7 @@
       if (update?.available) {
         updateHandle = update
         updateVersion = update.version
+        updateNotes = update.body ?? ''
         updateAvailable = true
       }
     } catch {
@@ -42,9 +44,12 @@
 
 {#if updateAvailable}
   <div class="update-banner">
-    <span class="update-text">
-      Moss {updateVersion} is available
-    </span>
+    <div class="update-info">
+      <span class="update-text">Moss {updateVersion} is available</span>
+      {#if updateNotes}
+        <span class="update-notes">{updateNotes}</span>
+      {/if}
+    </div>
     <div class="update-actions">
       {#if installed}
         <span class="installed-note">Restart to apply</span>
@@ -78,10 +83,25 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.10);
   }
 
+  .update-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
   .update-text {
     font-size: 12.5px;
     font-family: var(--font-mono);
     color: var(--color-text);
+  }
+
+  .update-notes {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--color-text-muted);
+    max-width: 280px;
+    white-space: pre-wrap;
+    line-height: 1.5;
   }
 
   .update-actions {

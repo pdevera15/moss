@@ -106,16 +106,6 @@ jobs:
           includeUpdaterJson: true
           args: ${{ matrix.args }}
 
-      - name: Upload updater zip artifacts (tauri-action skips these)
-        if: matrix.platform == 'windows-latest'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          Get-ChildItem -Recurse src-tauri/target/release/bundle -Include "*.zip","*.zip.sig" | ForEach-Object {
-            Write-Host "Uploading $($_.Name)"
-            gh release upload ${{ github.ref_name }} $($_.FullName) --repo ${{ github.repository }} --clobber
-          }
 
   publish-release:
     needs: [create-release, build]
@@ -141,55 +131,47 @@ jobs:
       contents: write
 
     steps:
-      - name: Download latest.json and Windows zip signatures
+      - name: Download release artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release download ${{ github.ref_name }} --pattern "latest.json" --repo ${{ github.repository }}
-          gh release download ${{ github.ref_name }} --pattern "*.zip.sig" --repo ${{ github.repository }}
+          gh release download ${{ github.ref_name }} --repo ${{ github.repository }} --dir ./artifacts
+          ls ./artifacts/
 
-      - name: Patch latest.json with correct zip URLs and signatures
+      - name: Build latest.json from release signatures
         run: |
           TAG=${{ github.ref_name }}
           REPO=${{ github.repository }}
           VERSION="${TAG#v}"
           BASE="https://github.com/${REPO}/releases/download/${TAG}"
 
-          MSI_FILE="Moss_${VERSION}_x64_en-US.msi.zip"
-          NSIS_FILE="Moss_${VERSION}_x64-setup.nsis.zip"
+          MSI_SIG=$(cat "artifacts/Moss_${VERSION}_x64_en-US.msi.sig" 2>/dev/null || echo "")
+          NSIS_SIG=$(cat "artifacts/Moss_${VERSION}_x64-setup.exe.sig" 2>/dev/null || echo "")
+          MAC_SIG=$(cat "artifacts/Moss_aarch64.app.tar.gz.sig" 2>/dev/null || echo "")
 
-          MSI_SIG=$(cat "${MSI_FILE}.sig" 2>/dev/null || echo "")
-          NSIS_SIG=$(cat "${NSIS_FILE}.sig" 2>/dev/null || echo "")
+          jq -n \
+            --arg version "$VERSION" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            --arg mac_url "${BASE}/Moss_aarch64.app.tar.gz" \
+            --arg mac_sig "$MAC_SIG" \
+            --arg win_msi_url "${BASE}/Moss_${VERSION}_x64_en-US.msi" \
+            --arg win_msi_sig "$MSI_SIG" \
+            --arg win_nsis_url "${BASE}/Moss_${VERSION}_x64-setup.exe" \
+            --arg win_nsis_sig "$NSIS_SIG" \
+            '{
+              version: $version,
+              notes: "",
+              pub_date: $pub_date,
+              platforms: {
+                "darwin-aarch64":     {signature: $mac_sig,      url: $mac_url},
+                "darwin-aarch64-app": {signature: $mac_sig,      url: $mac_url},
+                "windows-x86_64":     {signature: $win_nsis_sig, url: $win_nsis_url},
+                "windows-x86_64-msi": {signature: $win_msi_sig,  url: $win_msi_url},
+                "windows-x86_64-nsis":{signature: $win_nsis_sig, url: $win_nsis_url}
+              }
+            }' > latest.json
 
-          MANIFEST=$(cat latest.json)
-
-          # Patch windows-x86_64 → NSIS zip (preferred), fallback to MSI zip
-          if [ -n "$NSIS_SIG" ]; then
-            MANIFEST=$(echo "$MANIFEST" | jq \
-              --arg url "${BASE}/${NSIS_FILE}" --arg sig "$NSIS_SIG" \
-              'if .platforms["windows-x86_64"] then .platforms["windows-x86_64"].url=$url | .platforms["windows-x86_64"].signature=$sig else . end')
-          elif [ -n "$MSI_SIG" ]; then
-            MANIFEST=$(echo "$MANIFEST" | jq \
-              --arg url "${BASE}/${MSI_FILE}" --arg sig "$MSI_SIG" \
-              'if .platforms["windows-x86_64"] then .platforms["windows-x86_64"].url=$url | .platforms["windows-x86_64"].signature=$sig else . end')
-          fi
-
-          # Patch windows-x86_64-msi
-          if [ -n "$MSI_SIG" ]; then
-            MANIFEST=$(echo "$MANIFEST" | jq \
-              --arg url "${BASE}/${MSI_FILE}" --arg sig "$MSI_SIG" \
-              'if .platforms["windows-x86_64-msi"] then .platforms["windows-x86_64-msi"].url=$url | .platforms["windows-x86_64-msi"].signature=$sig else . end')
-          fi
-
-          # Patch windows-x86_64-nsis
-          if [ -n "$NSIS_SIG" ]; then
-            MANIFEST=$(echo "$MANIFEST" | jq \
-              --arg url "${BASE}/${NSIS_FILE}" --arg sig "$NSIS_SIG" \
-              'if .platforms["windows-x86_64-nsis"] then .platforms["windows-x86_64-nsis"].url=$url | .platforms["windows-x86_64-nsis"].signature=$sig else . end')
-          fi
-
-          echo "$MANIFEST" > latest.json
-          echo "=== Patched latest.json ==="
+          echo "=== Generated latest.json ==="
           cat latest.json
 
       - name: Push to public updates repo

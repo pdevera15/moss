@@ -29,6 +29,10 @@
   let titleInputEl = $state<HTMLInputElement | null>(null)
 
   $effect(() => {
+    if (!editing) editTitle = task.title
+  })
+
+  $effect(() => {
     if (editing && titleInputEl) {
       titleInputEl.focus()
       titleInputEl.select()

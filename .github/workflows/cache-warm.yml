@@ -44,4 +44,4 @@ jobs:
           cache-on-failure: true
 
       - name: Compile dependencies (no bundle)
-        run: cargo build --manifest-path src-tauri/Cargo.toml ${{ matrix.args }}
+        run: cargo build --release --manifest-path src-tauri/Cargo.toml ${{ matrix.args }}

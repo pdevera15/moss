@@ -9,6 +9,9 @@
   let updateHandle: Awaited<ReturnType<typeof check>> = null
 
   onMount(async () => {
+    // macOS updates are not supported (requires Apple notarization)
+    if (/mac/i.test(navigator.platform)) return
+
     try {
       const update = await check()
       if (update?.available) {

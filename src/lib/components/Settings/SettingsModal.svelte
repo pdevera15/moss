@@ -3,6 +3,7 @@
   import { check } from '@tauri-apps/plugin-updater'
   import { invoke } from '@tauri-apps/api/core'
   import { getVersion } from '@tauri-apps/api/app'
+  import pkg from '../../../../package.json'
 
   let { open = $bindable(false), onclose }: {
     open: boolean
@@ -36,7 +37,7 @@
 
   onMount(async () => {
     if (!isTauri) {
-      currentVersion = '0.2.0'
+      currentVersion = pkg.version
       updateState    = 'up-to-date'
       lastChecked    = 'just now'
       return
@@ -92,7 +93,7 @@
       })
     } catch (e) {
       updateState = 'error'
-      errorMsg    = e instanceof Error ? e.message : 'Download failed. Please try again.'
+      errorMsg    = e instanceof Error ? e.message : String(e)
     }
   }
 

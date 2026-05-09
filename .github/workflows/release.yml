@@ -92,7 +92,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          key: ${{ matrix.platform }}
+          shared-key: ${{ matrix.platform }}
+          cache-on-failure: true
 
       - name: Build and upload
         uses: tauri-apps/tauri-action@v0
@@ -104,6 +105,11 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           includeUpdaterJson: true
           args: ${{ matrix.args }}
+
+      - name: List bundle artifacts (debug)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: Get-ChildItem -Recurse src-tauri/target/release/bundle | Select-Object FullName
 
   publish-release:
     needs: [create-release, build]

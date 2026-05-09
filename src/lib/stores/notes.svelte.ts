@@ -1,7 +1,7 @@
 import { getDb } from '$lib/db'
 import { notes, tags, noteTags } from '$lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
-import type { Note } from '$core/types'
+import type { Note, NoteLanguage } from '$core/types'
 import { syncStore } from '$lib/stores/sync.svelte'
 import { embedNote, checkReindexNeeded, reindexAllEmbeddings } from '$lib/stores/search.svelte'
 
@@ -15,6 +15,19 @@ function debounce<T extends (...args: never[]) => void>(fn: T, ms: number): T & 
 function extractTags(body: string): string[] {
   const matches = body.match(/#\p{L}[\p{L}\p{N}_]*/gu) ?? []
   return [...new Set(matches.map(t => t.toLowerCase()))]
+}
+
+// Hiragana/katakana → Japanese (CJK ideographs alone are ambiguous between
+// zh/ja). Bopomofo or CJK ideographs without kana → Chinese. Latin-only or
+// empty body keeps the existing language so user/manual choice persists.
+const RE_KANA     = /[\u{3040}-\u{30FF}]/u
+const RE_BOPOMOFO = /[\u{3100}-\u{312F}\u{31A0}-\u{31BF}]/u
+const RE_CJK      = /[\u{4E00}-\u{9FFF}\u{3400}-\u{4DBF}\u{F900}-\u{FAFF}]/u
+function detectLanguage(body: string, current: NoteLanguage): NoteLanguage {
+  if (!body) return current
+  if (RE_KANA.test(body)) return 'ja'
+  if (RE_BOPOMOFO.test(body) || RE_CJK.test(body)) return 'zh'
+  return current
 }
 
 class NotesStore {
@@ -88,13 +101,16 @@ class NotesStore {
   saveNote = debounce(async (id: string, title: string, body: string): Promise<void> => {
     try {
       const db = await getDb()
-      await db.update(notes)
-        .set({ title, body, updated_at: Date.now() })
-        .where(eq(notes.id, id))
       const idx = this.notes.findIndex(n => n.id === id)
+      const current = idx !== -1 ? this.notes[idx].language : 'en'
+      const language = detectLanguage(body, current)
+      await db.update(notes)
+        .set({ title, body, language, updated_at: Date.now() })
+        .where(eq(notes.id, id))
       if (idx !== -1) {
-        this.notes[idx].title = title
-        this.notes[idx].body  = body
+        this.notes[idx].title    = title
+        this.notes[idx].body     = body
+        this.notes[idx].language = language
       }
       await this._syncTags(id, body)
       this._loadTags()
@@ -108,12 +124,12 @@ class NotesStore {
 
   // ── Private helpers ───────────────────────────────────────────────────
 
-  private async _insertBlankNote() {
+  private async _insertBlankNote(): Promise<Note> {
     const db  = await getDb()
     const now = Date.now()
     const id  = crypto.randomUUID()
-    await db.insert(notes).values({ id, title: '', body: '', created_at: now, updated_at: now })
-    return { id, title: '', body: '', created_at: now, updated_at: now }
+    await db.insert(notes).values({ id, title: '', body: '', created_at: now, updated_at: now, language: 'en' })
+    return { id, title: '', body: '', created_at: now, updated_at: now, language: 'en' }
   }
 
   private async _syncTags(noteId: string, body: string): Promise<void> {

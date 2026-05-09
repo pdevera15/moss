@@ -174,7 +174,7 @@
     </section>
 
     <!-- ── Editor (flex-1) ────────────────────────────────────────────── -->
-    <main class="editor-pane" bind:this={editorEl}>
+    <main class="editor-pane" bind:this={editorEl} lang={notesStore.activeNote?.language ?? 'en'}>
       {#if notesStore.isLoading}
         <div class="editor-state">Loading…</div>
       {:else if notesStore.loadError}

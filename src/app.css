@@ -4,6 +4,9 @@
    Import in app.css — do not duplicate values elsewhere.
 ──────────────────────────────────────────────────────────────────────────── */
 @import "tailwindcss";
+@import "@fontsource-variable/inter/standard.css";
+@import "@fontsource/biz-udpgothic/japanese-400.css";
+@import "@fontsource/lxgw-wenkai-tc/chinese-traditional-400.css";
 
 /* Geist Mono — loaded from npm package font files */
 @font-face {
@@ -27,11 +30,11 @@
   --color-text-muted:   #6B6A63;
 
   /* Fonts */
-  --font-title: "DM Serif Display", Georgia, serif;
-  --font-body:  "Lora", Georgia, serif;
-  --font-mono:  "GeistMono", "GeistMonoVariable", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
-  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-mono: "GeistMono", "GeistMonoVariable", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+  --font-title: "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", Georgia, serif;
+  --font-body:  "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", Georgia, serif;
+  --font-mono:  "GeistMono", "GeistMonoVariable", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+  --font-sans:  "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:  "GeistMono", "GeistMonoVariable", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
 
   /* 8pt spacing grid */
   --spacing-1:  4px;
@@ -62,7 +65,12 @@ html, body {
   font-family: var(--font-mono);
   font-size: 14px;
   line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  text-rendering: optimizeSpeed;
+  font-kerning: normal;
+  font-optical-sizing: auto;
+  font-feature-settings: "palt" 1, "kern" 1;
   color-scheme: light;
 }
 
@@ -92,9 +100,9 @@ html, body {
   --color-amber:       #C4905A;   /* cursor accent — used sparingly */
 
   /* ── Typography ──────────────────────────────────────────────────────── */
-  --font-title: "DM Serif Display", Georgia, "Times New Roman", serif;
-  --font-body:  "Lora", Georgia, "Times New Roman", serif;
-  --font-mono:  "GeistMono", "GeistMonoVariable", ui-monospace, "Cascadia Code",
+  --font-title: "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", Georgia, "Times New Roman", serif;
+  --font-body:  "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", Georgia, "Times New Roman", serif;
+  --font-mono:  "GeistMono", "GeistMonoVariable", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", ui-monospace, "Cascadia Code",
                 "Source Code Pro", Menlo, Consolas, monospace;
 
   --font-size-xs:   11px;

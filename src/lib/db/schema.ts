@@ -6,6 +6,7 @@ export const notes = sqliteTable('notes', {
   body:       text('body').notNull().default(''),
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
+  language:   text('language').notNull().default('en'),
 })
 
 export const tags = sqliteTable('tags', {

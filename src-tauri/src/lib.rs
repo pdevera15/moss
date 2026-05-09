@@ -45,6 +45,12 @@ pub fn run() {
             sql: include_str!("../migrations/0005_add_settings.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 7,
+            description: "add_language",
+            sql: include_str!("../migrations/0006_add_language.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     let embedding_arc: Arc<Mutex<Option<TextEmbedding>>> = Arc::new(Mutex::new(None));

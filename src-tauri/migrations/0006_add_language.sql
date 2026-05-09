@@ -1,0 +1,1 @@
+ALTER TABLE notes ADD COLUMN language TEXT NOT NULL DEFAULT 'en';

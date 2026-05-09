@@ -36,7 +36,7 @@ export async function seedJapaneseNotes(): Promise<void> {
   for (const note of JAPANESE_NOTES) {
     const id = crypto.randomUUID()
     const created_at = now - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)
-    await db.insert(notes).values({ id, title: note.title, body: note.body, created_at, updated_at: created_at })
+    await db.insert(notes).values({ id, title: note.title, body: note.body, created_at, updated_at: created_at, language: 'ja' })
     await embedNote(id, note.title, note.body)
   }
 }

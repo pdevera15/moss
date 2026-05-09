@@ -48,6 +48,10 @@
         e.preventDefault()
         paletteOpen = !paletteOpen
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault()
+        notesStore.createNote()
+      }
     }
     window.addEventListener('keydown', onGlobalKey)
     return () => window.removeEventListener('keydown', onGlobalKey)

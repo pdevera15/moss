@@ -106,10 +106,16 @@ jobs:
           includeUpdaterJson: true
           args: ${{ matrix.args }}
 
-      - name: List bundle artifacts (debug)
+      - name: Upload updater zip artifacts (tauri-action skips these)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
-        run: Get-ChildItem -Recurse src-tauri/target/release/bundle | Select-Object FullName
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Get-ChildItem -Recurse src-tauri/target/release/bundle -Include "*.zip","*.zip.sig" | ForEach-Object {
+            Write-Host "Uploading $($_.Name)"
+            gh release upload ${{ github.ref_name }} $($_.FullName) --repo ${{ github.repository }} --clobber
+          }
 
   publish-release:
     needs: [create-release, build]
@@ -135,15 +141,56 @@ jobs:
       contents: write
 
     steps:
-      - name: List release assets
+      - name: Download latest.json and Windows zip signatures
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release view ${{ github.ref_name }} --repo ${{ github.repository }} --json assets --jq '.assets[].name'
+        run: |
+          gh release download ${{ github.ref_name }} --pattern "latest.json" --repo ${{ github.repository }}
+          gh release download ${{ github.ref_name }} --pattern "*.zip.sig" --repo ${{ github.repository }}
 
-      - name: Download latest.json from release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release download ${{ github.ref_name }} --pattern "latest.json" --repo ${{ github.repository }}
+      - name: Patch latest.json with correct zip URLs and signatures
+        run: |
+          TAG=${{ github.ref_name }}
+          REPO=${{ github.repository }}
+          VERSION="${TAG#v}"
+          BASE="https://github.com/${REPO}/releases/download/${TAG}"
+
+          MSI_FILE="Moss_${VERSION}_x64_en-US.msi.zip"
+          NSIS_FILE="Moss_${VERSION}_x64-setup.nsis.zip"
+
+          MSI_SIG=$(cat "${MSI_FILE}.sig" 2>/dev/null || echo "")
+          NSIS_SIG=$(cat "${NSIS_FILE}.sig" 2>/dev/null || echo "")
+
+          MANIFEST=$(cat latest.json)
+
+          # Patch windows-x86_64 → NSIS zip (preferred), fallback to MSI zip
+          if [ -n "$NSIS_SIG" ]; then
+            MANIFEST=$(echo "$MANIFEST" | jq \
+              --arg url "${BASE}/${NSIS_FILE}" --arg sig "$NSIS_SIG" \
+              'if .platforms["windows-x86_64"] then .platforms["windows-x86_64"].url=$url | .platforms["windows-x86_64"].signature=$sig else . end')
+          elif [ -n "$MSI_SIG" ]; then
+            MANIFEST=$(echo "$MANIFEST" | jq \
+              --arg url "${BASE}/${MSI_FILE}" --arg sig "$MSI_SIG" \
+              'if .platforms["windows-x86_64"] then .platforms["windows-x86_64"].url=$url | .platforms["windows-x86_64"].signature=$sig else . end')
+          fi
+
+          # Patch windows-x86_64-msi
+          if [ -n "$MSI_SIG" ]; then
+            MANIFEST=$(echo "$MANIFEST" | jq \
+              --arg url "${BASE}/${MSI_FILE}" --arg sig "$MSI_SIG" \
+              'if .platforms["windows-x86_64-msi"] then .platforms["windows-x86_64-msi"].url=$url | .platforms["windows-x86_64-msi"].signature=$sig else . end')
+          fi
+
+          # Patch windows-x86_64-nsis
+          if [ -n "$NSIS_SIG" ]; then
+            MANIFEST=$(echo "$MANIFEST" | jq \
+              --arg url "${BASE}/${NSIS_FILE}" --arg sig "$NSIS_SIG" \
+              'if .platforms["windows-x86_64-nsis"] then .platforms["windows-x86_64-nsis"].url=$url | .platforms["windows-x86_64-nsis"].signature=$sig else . end')
+          fi
+
+          echo "$MANIFEST" > latest.json
+          echo "=== Patched latest.json ==="
+          cat latest.json
 
       - name: Push to public updates repo
         uses: dmnemec/copy_file_to_another_repo_action@v1.1.1

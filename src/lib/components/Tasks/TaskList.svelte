@@ -67,6 +67,8 @@
     commitTask()
     addingTask = false
   }
+
+
 </script>
 
 <div class="tasks-panel">
@@ -127,6 +129,8 @@
             onaddsub={(tid, title) => tasksStore.addSubtask(tid, title)}
             ondelete={(id) => tasksStore.deleteTask(id)}
             onupdatedue={(id, d) => tasksStore.updateDueDate(id, d)}
+            ontitle={(id, t) => tasksStore.updateTitle(id, t)}
+            onupdatesub={(tid, sid, t) => tasksStore.updateSubtaskTitle(tid, sid, t)}
           />
         {/each}
       </div>
@@ -152,6 +156,8 @@
         onaddsub={(tid, title) => { tasksStore.addSubtask(tid, title); pendingSubtaskFor = null }}
         ondelete={(id) => tasksStore.deleteTask(id)}
         onupdatedue={(id, d) => tasksStore.updateDueDate(id, d)}
+        ontitle={(id, t) => tasksStore.updateTitle(id, t)}
+        onupdatesub={(tid, sid, t) => tasksStore.updateSubtaskTitle(tid, sid, t)}
       />
     {/each}
 

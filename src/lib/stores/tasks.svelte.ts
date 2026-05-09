@@ -152,6 +152,20 @@ class TasksStore {
     }
   }
 
+  async updateSubtaskTitle(taskId: string, subId: string, title: string): Promise<void> {
+    const task = this.tasks.find(t => t.id === taskId)
+    if (!task) return
+    const sub = task.subtasks.find(s => s.id === subId)
+    if (!sub || !title || sub.title === title) return
+    sub.title = title
+    try {
+      const db = await getDb()
+      await db.update(tasks).set({ title, updated_at: Date.now() }).where(eq(tasks.id, subId))
+    } catch (err) {
+      console.error('Failed to update subtask title:', err)
+    }
+  }
+
   async updateDueDate(id: string, dueDate: number | null): Promise<void> {
     const task = this.tasks.find(t => t.id === id)
     if (!task) return
@@ -161,6 +175,18 @@ class TasksStore {
       await db.update(tasks).set({ due_date: dueDate, updated_at: Date.now() }).where(eq(tasks.id, id))
     } catch (err) {
       console.error('Failed to update due date:', err)
+    }
+  }
+
+  async updateTitle(id: string, title: string): Promise<void> {
+    const task = this.tasks.find(t => t.id === id)
+    if (!task || !title || task.title === title) return
+    task.title = title
+    try {
+      const db = await getDb()
+      await db.update(tasks).set({ title, updated_at: Date.now() }).where(eq(tasks.id, id))
+    } catch (err) {
+      console.error('Failed to update task title:', err)
     }
   }
 

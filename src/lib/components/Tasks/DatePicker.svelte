@@ -22,10 +22,12 @@
 
   onMount(() => {
     const rect       = anchorEl.getBoundingClientRect()
+    const POP_W      = 224
     const popH       = 274
     const spaceBelow = window.innerHeight - rect.bottom
     const top        = spaceBelow >= popH ? rect.bottom + 6 : rect.top - popH - 6
-    posStyle         = `top:${top}px;left:${rect.left}px;`
+    const left       = Math.min(rect.left, window.innerWidth - POP_W - 8)
+    posStyle         = `top:${top}px;left:${left}px;`
     popoverEl?.focus()
   })
 

@@ -12,13 +12,77 @@
     onaddsub:    (taskId: string, title: string) => void
     ondelete:    (id: string) => void
     onupdatedue: (taskId: string, dueDate: number | null) => void
+    ontitle:      (id: string, title: string) => void
+    onupdatesub:  (taskId: string, subId: string, title: string) => void
   }
 
   let { task, rolled = false, openSubtask = false,
-        ontoggle, ontogglesub, onaddsub, ondelete, onupdatedue }: Props = $props()
+        ontoggle, ontogglesub, onaddsub, ondelete, onupdatedue, ontitle, onupdatesub }: Props = $props()
 
-  let showDuePicker = $state(false)
-  let chipEl        = $state<HTMLButtonElement | null>(null)
+  let showDuePicker   = $state(false)
+  let chipEl          = $state<HTMLButtonElement | null>(null)
+  let addDueBtnEl     = $state<HTMLButtonElement | null>(null)
+
+  // ── Inline title editing ─────────────────────────────────────────────
+  let editing      = $state(false)
+  let editTitle    = $state(task.title)
+  let titleInputEl = $state<HTMLInputElement | null>(null)
+
+  $effect(() => {
+    if (editing && titleInputEl) {
+      titleInputEl.focus()
+      titleInputEl.select()
+    }
+  })
+
+  function startEdit() {
+    if (task.done) return
+    editTitle = task.title
+    editing   = true
+  }
+
+  function commitTitle() {
+    editing = false
+    const trimmed = editTitle.trim()
+    if (trimmed && trimmed !== task.title) ontitle(task.id, trimmed)
+    else editTitle = task.title
+  }
+
+  function handleTitleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter')  { e.preventDefault(); commitTitle() }
+    if (e.key === 'Escape') { editing = false; editTitle = task.title }
+  }
+
+  // ── Inline subtask editing ───────────────────────────────────────────
+  let editingSubId  = $state<string | null>(null)
+  let editSubTitle  = $state('')
+  let subEditInputEl = $state<HTMLInputElement | null>(null)
+
+  $effect(() => {
+    if (editingSubId && subEditInputEl) {
+      subEditInputEl.focus()
+      subEditInputEl.select()
+    }
+  })
+
+  function startEditSub(subId: string, currentTitle: string) {
+    editingSubId = subId
+    editSubTitle = currentTitle
+  }
+
+  function commitSubTitle() {
+    const id = editingSubId
+    editingSubId = null
+    if (!id) return
+    const trimmed = editSubTitle.trim()
+    const sub = task.subtasks.find(s => s.id === id)
+    if (trimmed && sub && trimmed !== sub.title) onupdatesub(task.id, id, trimmed)
+  }
+
+  function handleSubEditKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter')  { e.preventDefault(); commitSubTitle() }
+    if (e.key === 'Escape') { editingSubId = null }
+  }
 
   let dueDateClass = $derived(
     task.dueDate === null        ? '' :
@@ -141,7 +205,26 @@
   <div class="task-content">
     <!-- Title row -->
     <div class="title-row" class:has-subs={hasSubs && expanded}>
-      <span class="task-title" class:done={task.done}>{task.title}</span>
+      {#if editing}
+        <input
+          bind:this={titleInputEl}
+          class="title-input"
+          bind:value={editTitle}
+          onkeydown={handleTitleKeydown}
+          onblur={commitTitle}
+          onpointerdown={e => e.stopPropagation()}
+        />
+      {:else}
+        <span
+          class="task-title"
+          class:done={task.done}
+          role="button"
+          tabindex={task.done ? -1 : 0}
+          onclick={startEdit}
+          onkeydown={e => e.key === 'Enter' && startEdit()}
+          onpointerdown={e => e.stopPropagation()}
+        >{task.title}</span>
+      {/if}
 
       {#if task.dueDate !== null}
         <span class="due-chip-wrap">
@@ -149,14 +232,29 @@
             bind:this={chipEl}
             class="due-chip {dueDateClass}"
             onclick={() => showDuePicker = true}
+            onpointerdown={e => e.stopPropagation()}
             aria-label="Edit due date"
           >{dueDateLabel}</button>
           <button
             class="due-clear"
             onclick={(e) => { e.stopPropagation(); onupdatedue(task.id, null) }}
+            onpointerdown={e => e.stopPropagation()}
             aria-label="Clear due date"
           >×</button>
         </span>
+      {:else if !task.done}
+        <button
+          bind:this={addDueBtnEl}
+          class="add-due-btn"
+          onclick={() => showDuePicker = true}
+          onpointerdown={e => e.stopPropagation()}
+          aria-label="Set due date"
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="12" height="12" rx="2"/>
+            <path d="M5 1v3M11 1v3M2 7h12"/>
+          </svg>
+        </button>
       {/if}
 
       {#if rolled && !task.done}
@@ -202,7 +300,26 @@
                 </svg>
               {/if}
             </button>
-            <span class="subtask-title" class:done={sub.done}>{sub.title}</span>
+            {#if editingSubId === sub.id}
+              <input
+                bind:this={subEditInputEl}
+                class="subtask-edit-input"
+                bind:value={editSubTitle}
+                onkeydown={handleSubEditKeydown}
+                onblur={commitSubTitle}
+                onpointerdown={e => e.stopPropagation()}
+              />
+            {:else}
+              <span
+                class="subtask-title"
+                class:done={sub.done}
+                role="button"
+                tabindex={sub.done ? -1 : 0}
+                onclick={() => !sub.done && startEditSub(sub.id, sub.title)}
+                onkeydown={e => e.key === 'Enter' && !sub.done && startEditSub(sub.id, sub.title)}
+                onpointerdown={e => e.stopPropagation()}
+              >{sub.title}</span>
+            {/if}
           </div>
         {/each}
       </div>
@@ -229,10 +346,10 @@
   </div>
 </div>
 
-{#if showDuePicker && chipEl}
+{#if showDuePicker && (chipEl || addDueBtnEl)}
   <DatePicker
     value={task.dueDate}
-    anchorEl={chipEl}
+    anchorEl={(chipEl ?? addDueBtnEl)!}
     onselect={(d) => { onupdatedue(task.id, d); showDuePicker = false }}
     onclose={() => showDuePicker = false}
   />
@@ -275,8 +392,8 @@
     user-select: none;
   }
 
-  .task-row.done    { background: var(--color-bg); }
-  .task-row.rolled  { background: rgba(196,168,74,0.04); border-color: rgba(196,168,74,0.18); }
+  .task-row.done   { background: var(--color-bg); }
+  .task-row.rolled { background: rgba(196,168,74,0.04); border-color: rgba(196,168,74,0.18); }
 
   /* ── Circles ── */
   .circle {
@@ -424,6 +541,20 @@
 
   .subtask-title.done { text-decoration: line-through; }
 
+  .subtask-edit-input {
+    font-size: 12px;
+    font-family: var(--font-body, serif);
+    color: var(--color-text);
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    caret-color: var(--color-moss);
+  }
+
   /* ── Add subtask ── */
   .add-sub-row {
     display: flex;
@@ -457,6 +588,47 @@
   }
 
   .add-sub-btn:hover { color: var(--color-text); }
+
+  /* ── Inline title editing ── */
+  .title-input {
+    flex: 1;
+    font-size: 13.5px;
+    font-weight: 500;
+    font-family: var(--font-body, serif);
+    color: var(--color-text);
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+    margin: 0;
+    line-height: 1.4;
+    caret-color: var(--color-moss);
+    min-width: 0;
+  }
+
+  /* ── Add due date button (hover reveal) ── */
+  .add-due-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--r-sm, 4px);
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--color-text-faint, #C0BDB6);
+    padding: 0;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+  }
+
+  .task-row:hover .add-due-btn { opacity: 1; }
+  .add-due-btn:hover {
+    color: var(--color-text-muted, #6A6760);
+    background: var(--color-surface-2, #E8E8E5);
+  }
 
   /* ── Due date chip ── */
   .due-chip-wrap {

@@ -1,0 +1,5 @@
+# Migrations are hashed by tauri-plugin-sql / sqlx using their raw bytes.
+# Pin them to LF so the same checksum is computed on every platform / runner,
+# regardless of the user's core.autocrlf setting. Mismatches here are how users
+# end up with "migration N was previously applied but has been modified".
+src-tauri/migrations/*.sql text eol=lf

@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' tauri: asset:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: tauri: blob: https:; connect-src 'self' wss: ws:; font-src 'self' data: asset:; worker-src 'self' blob:; object-src 'none';"
     }
   },
   "plugins": {

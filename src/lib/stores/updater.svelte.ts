@@ -40,7 +40,7 @@ class UpdaterStore {
     try {
       const update = await check()
       this.lastChecked = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      if (update?.available) {
+      if (update) {
         this.#handle       = update
         this.latestVersion = update.version ?? ''
         this.releaseNotes  = update.body ?? ''

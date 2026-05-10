@@ -1,114 +1,22 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { check } from '@tauri-apps/plugin-updater'
-  import { invoke } from '@tauri-apps/api/core'
-  import { getVersion } from '@tauri-apps/api/app'
-  import pkg from '../../../../package.json'
+  import { updater } from '$lib/stores/updater.svelte'
 
   let { open = $bindable(false), onclose }: {
     open: boolean
     onclose?: () => void
   } = $props()
 
-  const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
-
-  type UpdaterState = 'checking' | 'up-to-date' | 'available' | 'downloading' | 'ready' | 'error'
   type NavId = 'updates' | 'about'
 
-  let activeNav      = $state<NavId>('updates')
-  let updateState    = $state<UpdaterState>('checking')
-  let currentVersion = $state('—')
-  let latestVersion  = $state('')
-  let releaseNotes   = $state('')
-  let releaseDate    = $state('')
-  let downloadPct    = $state(0)
-  let downloadedMB   = $state(0)
-  let totalMB        = $state(0)
-  let lastChecked    = $state('—')
-  let errorMsg       = $state('')
-  let autoUpdate     = $state(true)
-  let updateHandle   = $state<Awaited<ReturnType<typeof check>> | null>(null)
+  let activeNav = $state<NavId>('updates')
 
-  // Content header labels per nav item
   const HEADER: Record<NavId, { eyebrow: string; title: string }> = {
     updates: { eyebrow: 'Updates', title: 'App version' },
     about:   { eyebrow: 'About',   title: 'Moss'        },
   }
 
-  onMount(async () => {
-    if (!isTauri) {
-      currentVersion = pkg.version
-      updateState    = 'up-to-date'
-      lastChecked    = 'just now'
-      return
-    }
-    try { currentVersion = await getVersion() } catch { /* ignore */ }
-    await checkForUpdates()
-  })
-
-  async function checkForUpdates() {
-    updateState = 'checking'
-    lastChecked = '…'
-    errorMsg    = ''
-    try {
-      const update = await check()
-      lastChecked = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      if (update?.available) {
-        updateHandle  = update
-        latestVersion = update.version ?? ''
-        releaseNotes  = update.body ?? ''
-        releaseDate   = update.date
-          ? new Date(update.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-          : ''
-        updateState = 'available'
-      } else {
-        updateState = 'up-to-date'
-      }
-    } catch (e) {
-      updateState = 'error'
-      errorMsg    = e instanceof Error ? e.message : String(e)
-      lastChecked = 'unavailable'
-    }
-  }
-
-  async function startDownload() {
-    if (!updateHandle) return
-    updateState  = 'downloading'
-    downloadPct  = 0
-    downloadedMB = 0
-    totalMB      = 0
-    try {
-      await updateHandle.downloadAndInstall((event) => {
-        if (event.event === 'Started') {
-          totalMB = (event.data.contentLength ?? 0) / 1_048_576
-        } else if (event.event === 'Progress') {
-          downloadedMB += event.data.chunkLength / 1_048_576
-          downloadPct = totalMB > 0
-            ? Math.min(99, Math.round((downloadedMB / totalMB) * 100))
-            : 0
-        } else if (event.event === 'Finished') {
-          downloadPct = 100
-          updateState = 'ready'
-        }
-      })
-    } catch (e) {
-      updateState = 'error'
-      errorMsg    = e instanceof Error ? e.message : String(e)
-    }
-  }
-
-  async function restartNow() {
-    try {
-      // tauri-plugin-process: silently falls back if not registered.
-      // On Windows/NSIS, downloadAndInstall already staged the update;
-      // relaunching applies it.
-      await invoke('plugin:process|relaunch')
-    } catch {
-      // Plugin not available — instruct user to restart manually
-      errorMsg    = 'Please close and reopen Moss to apply the update.'
-      updateState = 'ready'
-    }
-  }
+  onMount(() => updater.init())
 
   function closeModal() {
     open = false
@@ -142,7 +50,7 @@
       </button>
 
       <div class="nav-spacer"></div>
-      <div class="nav-version">moss · v{currentVersion}</div>
+      <div class="nav-version">moss · v{updater.currentVersion}</div>
     </nav>
 
     <!-- ── Content ─────────────────────────────────────────────────────── -->
@@ -164,56 +72,56 @@
             <div class="version-info">
               <div class="version-row">
                 <span class="app-name">Moss</span>
-                <span class="version-num">v{currentVersion}</span>
+                <span class="version-num">v{updater.currentVersion}</span>
 
-                {#if updateState === 'checking'}
+                {#if updater.updateState === 'checking'}
                   <span class="pill pill--neutral"><span class="pill-dot"></span>Checking…</span>
-                {:else if updateState === 'up-to-date'}
+                {:else if updater.updateState === 'up-to-date'}
                   <span class="pill pill--success"><span class="pill-dot"></span>Up to date</span>
-                {:else if updateState === 'available'}
+                {:else if updater.updateState === 'available'}
                   <span class="pill pill--amber"><span class="pill-dot"></span>Update available</span>
-                {:else if updateState === 'downloading'}
+                {:else if updater.updateState === 'downloading'}
                   <span class="pill pill--info"><span class="pill-dot"></span>Downloading</span>
-                {:else if updateState === 'ready'}
+                {:else if updater.updateState === 'ready'}
                   <span class="pill pill--success"><span class="pill-dot"></span>Ready to install</span>
-                {:else if updateState === 'error'}
+                {:else if updater.updateState === 'error'}
                   <span class="pill pill--error"><span class="pill-dot"></span>Error</span>
                 {/if}
               </div>
 
               <div class="version-sub">
-                {#if updateState === 'checking'}
+                {#if updater.updateState === 'checking'}
                   Checking for updates…
-                {:else if updateState === 'up-to-date'}
-                  You're on the latest stable release.{#if releaseDate}&nbsp;<span class="sub-muted">Released {releaseDate}.</span>{/if}
-                {:else if updateState === 'available'}
-                  A new version is ready to download — <strong>v{latestVersion}</strong>{#if releaseDate}&nbsp;· released {releaseDate}{/if}.
-                {:else if updateState === 'downloading'}
-                  Downloading v{latestVersion} in the background. You can keep working.
-                {:else if updateState === 'ready'}
-                  v{latestVersion} has been downloaded. Restart Moss to apply the update — your open notes will be preserved.
-                {:else if updateState === 'error'}
-                  <span class="sub-error">{errorMsg}</span>
+                {:else if updater.updateState === 'up-to-date'}
+                  You're on the latest stable release.{#if updater.releaseDate}&nbsp;<span class="sub-muted">Released {updater.releaseDate}.</span>{/if}
+                {:else if updater.updateState === 'available'}
+                  A new version is ready to download — <strong>v{updater.latestVersion}</strong>{#if updater.releaseDate}&nbsp;· released {updater.releaseDate}{/if}.
+                {:else if updater.updateState === 'downloading'}
+                  Downloading v{updater.latestVersion} in the background. You can keep working.
+                {:else if updater.updateState === 'ready'}
+                  v{updater.latestVersion} has been downloaded. Restart Moss to apply the update — your open notes will be preserved.
+                {:else if updater.updateState === 'error'}
+                  <span class="sub-error">{updater.errorMsg}</span>
                 {/if}
               </div>
             </div>
           </div>
 
           <!-- State cards -->
-          {#if updateState === 'up-to-date'}
+          {#if updater.updateState === 'up-to-date'}
             <div class="panel-card">
-              <div class="changelog-heading">What's in {currentVersion}</div>
+              <div class="changelog-heading">What's in {updater.currentVersion}</div>
               <div class="changelog-empty">Your app is fully up to date.</div>
             </div>
 
-          {:else if updateState === 'available'}
+          {:else if updater.updateState === 'available'}
             <div class="available-card">
               <div class="available-top">
                 <div>
                   <div class="whats-new-eyebrow">What's new</div>
-                  <div class="release-name">Version {latestVersion}</div>
+                  <div class="release-name">Version {updater.latestVersion}</div>
                 </div>
-                <button class="btn-primary" onclick={startDownload}>
+                <button class="btn-primary" onclick={() => updater.startDownload()}>
                   <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
                     <path d="M6 1v8m0 0L3 6m3 3l3-3M2 11h8"
                       stroke="currentColor" stroke-width="1.5"
@@ -222,8 +130,8 @@
                   Download &amp; install
                 </button>
               </div>
-              {#if releaseNotes}
-                <pre class="release-notes">{releaseNotes}</pre>
+              {#if updater.releaseNotes}
+                <pre class="release-notes">{updater.releaseNotes}</pre>
               {:else}
                 <p class="release-notes-empty">No release notes for this version.</p>
               {/if}
@@ -232,25 +140,25 @@
               </div>
             </div>
 
-          {:else if updateState === 'downloading'}
+          {:else if updater.updateState === 'downloading'}
             <div class="panel-card">
               <div class="download-header">
-                <span class="download-label">Downloading {latestVersion}</span>
+                <span class="download-label">Downloading {updater.latestVersion}</span>
                 <span class="download-bytes">
-                  {#if totalMB > 0}
-                    {downloadedMB.toFixed(1)} / {totalMB.toFixed(1)} MB&nbsp;·&nbsp;{downloadPct}%
+                  {#if updater.totalMB > 0}
+                    {updater.downloadedMB.toFixed(1)} / {updater.totalMB.toFixed(1)} MB&nbsp;·&nbsp;{updater.downloadPct}%
                   {:else}
-                    {downloadPct}%
+                    {updater.downloadPct}%
                   {/if}
                 </span>
               </div>
               <div class="progress-track">
-                <div class="progress-fill" style:width="{downloadPct}%"></div>
+                <div class="progress-fill" style:width="{updater.downloadPct}%"></div>
               </div>
               <span class="download-eta">Downloading…</span>
             </div>
 
-          {:else if updateState === 'ready'}
+          {:else if updater.updateState === 'ready'}
             <div class="ready-card">
               <div class="ready-left">
                 <div class="ready-icon-wrap">
@@ -261,23 +169,23 @@
                   </svg>
                 </div>
                 <div>
-                  <div class="ready-title">Restart to apply {latestVersion}</div>
+                  <div class="ready-title">Restart to apply {updater.latestVersion}</div>
                   <div class="ready-sub">Takes about 3 seconds · all unsaved work is auto-saved first</div>
                 </div>
               </div>
               <div class="ready-actions">
                 <button class="btn-ghost" onclick={closeModal}>Later</button>
-                <button class="btn-primary" onclick={restartNow}>Restart now</button>
+                <button class="btn-primary" onclick={() => updater.restartNow()}>Restart now</button>
               </div>
             </div>
 
-          {:else if updateState === 'error'}
+          {:else if updater.updateState === 'error'}
             <div class="error-card">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.4"/>
                 <path d="M8 5v3.5M8 11v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
-              <span>{errorMsg || 'Something went wrong. Please try again.'}</span>
+              <span>{updater.errorMsg || 'Something went wrong. Please try again.'}</span>
             </div>
           {/if}
 
@@ -289,9 +197,9 @@
                 <span class="auto-label">Automatic updates</span>
                 <button
                   class="toggle"
-                  class:on={autoUpdate}
-                  onclick={() => (autoUpdate = !autoUpdate)}
-                  aria-pressed={autoUpdate}
+                  class:on={updater.autoUpdate}
+                  onclick={() => (updater.autoUpdate = !updater.autoUpdate)}
+                  aria-pressed={updater.autoUpdate}
                   aria-label="Toggle automatic updates"
                 >
                   <span class="toggle-knob"></span>
@@ -300,10 +208,10 @@
               <div class="footer-meta">
                 Channel:&nbsp;<span class="meta-em">Stable</span>
                 &nbsp;·&nbsp;
-                Last checked:&nbsp;<span class="meta-em">{lastChecked}</span>
+                Last checked:&nbsp;<span class="meta-em">{updater.lastChecked}</span>
               </div>
             </div>
-            <button class="btn-ghost" onclick={checkForUpdates} disabled={updateState === 'downloading'}>
+            <button class="btn-ghost" onclick={() => updater.checkForUpdates()} disabled={updater.updateState === 'downloading'}>
               Check for updates
             </button>
           </div>
@@ -314,7 +222,7 @@
           <div class="about-hero">
             <div class="about-mark"><span>M</span></div>
             <div class="about-name">Moss</div>
-            <div class="about-version">Version {currentVersion}</div>
+            <div class="about-version">Version {updater.currentVersion}</div>
             <div class="about-tagline">A warm, fast, cross-platform note-taking app.</div>
           </div>
 

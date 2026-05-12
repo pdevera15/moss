@@ -77,7 +77,9 @@ pub async fn semantic_search(
     let mut query_vec = tokio::task::spawn_blocking(move || -> Result<Vec<f32>, String> {
         let mut guard = model_arc.lock().unwrap();
         let model = guard.as_mut().ok_or("embedding model not ready")?;
-        let mut emb = model.embed(vec![q_clone], None).map_err(|e| e.to_string())?;
+        let mut emb = model
+            .embed(vec![q_clone], None)
+            .map_err(|e| e.to_string())?;
         emb.pop().ok_or_else(|| "no embedding returned".to_string())
     })
     .await
@@ -117,7 +119,11 @@ pub async fn semantic_search(
                 .chunks_exact(4)
                 .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
                 .collect();
-            let score: f32 = query_vec.iter().zip(stored.iter()).map(|(a, b)| a * b).sum();
+            let score: f32 = query_vec
+                .iter()
+                .zip(stored.iter())
+                .map(|(a, b)| a * b)
+                .sum();
             if score > 0.20 {
                 Some(SemanticResult { id, title, score })
             } else {
@@ -126,7 +132,11 @@ pub async fn semantic_search(
         })
         .collect();
 
-    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     results.truncate(5);
     Ok(results)
 }
@@ -152,7 +162,8 @@ pub async fn check_reindex_needed(app_handle: tauri::AppHandle) -> Result<bool, 
         .unwrap_or_default();
 
     if stored != CURRENT_MODEL {
-        conn.execute("DELETE FROM embeddings", []).map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM embeddings", [])
+            .map_err(|e| e.to_string())?;
         conn.execute(
             "INSERT OR REPLACE INTO settings (key, value) VALUES ('embedding_model', ?1)",
             rusqlite::params![CURRENT_MODEL],

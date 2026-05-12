@@ -137,8 +137,7 @@ mod tests {
     #[test]
     fn repairs_lf_drift_to_crlf_canonical() {
         let lf_sql = "CREATE TABLE foo (id INT);\n";
-        let crlf_sql: &'static str =
-            Box::leak(lf_sql.replace('\n', "\r\n").into_boxed_str());
+        let crlf_sql: &'static str = Box::leak(lf_sql.replace('\n', "\r\n").into_boxed_str());
 
         let f = NamedTempFile::new().unwrap();
         let conn = Connection::open(f.path()).unwrap();
@@ -165,7 +164,11 @@ mod tests {
         seed(&conn, 1, "test", &sha384(sql.as_bytes()));
         drop(conn);
 
-        let migs = [EmbeddedMigration { version: 1, description: "test", sql }];
+        let migs = [EmbeddedMigration {
+            version: 1,
+            description: "test",
+            sql,
+        }];
         let n = repair_sqlx_migrations(f.path(), &migs).unwrap();
         assert_eq!(n, 0);
     }
@@ -180,7 +183,11 @@ mod tests {
         seed(&conn, 1, "test", &sha384(stored_sql.as_bytes()));
         drop(conn);
 
-        let migs = [EmbeddedMigration { version: 1, description: "test", sql: new_sql }];
+        let migs = [EmbeddedMigration {
+            version: 1,
+            description: "test",
+            sql: new_sql,
+        }];
         let n = repair_sqlx_migrations(f.path(), &migs).unwrap();
         assert_eq!(n, 0);
 
@@ -190,9 +197,14 @@ mod tests {
 
     #[test]
     fn skips_when_db_missing() {
-        let path = std::env::temp_dir().join(format!("moss-no-such-db-{}.sqlite", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("moss-no-such-db-{}.sqlite", std::process::id()));
         let _ = std::fs::remove_file(&path);
-        let migs = [EmbeddedMigration { version: 1, description: "x", sql: "x" }];
+        let migs = [EmbeddedMigration {
+            version: 1,
+            description: "x",
+            sql: "x",
+        }];
         let n = repair_sqlx_migrations(&path, &migs).unwrap();
         assert_eq!(n, 0);
     }
@@ -201,7 +213,11 @@ mod tests {
     fn skips_when_table_missing() {
         let f = NamedTempFile::new().unwrap();
         let _conn = Connection::open(f.path()).unwrap();
-        let migs = [EmbeddedMigration { version: 1, description: "x", sql: "x" }];
+        let migs = [EmbeddedMigration {
+            version: 1,
+            description: "x",
+            sql: "x",
+        }];
         let n = repair_sqlx_migrations(f.path(), &migs).unwrap();
         assert_eq!(n, 0);
     }
@@ -215,8 +231,16 @@ mod tests {
         drop(conn);
 
         let migs = [
-            EmbeddedMigration { version: 1, description: "v1", sql: sql_v1 },
-            EmbeddedMigration { version: 2, description: "v2", sql: "CREATE TABLE b (id INT);\n" },
+            EmbeddedMigration {
+                version: 1,
+                description: "v1",
+                sql: sql_v1,
+            },
+            EmbeddedMigration {
+                version: 2,
+                description: "v2",
+                sql: "CREATE TABLE b (id INT);\n",
+            },
         ];
         let n = repair_sqlx_migrations(f.path(), &migs).unwrap();
         assert_eq!(n, 0);

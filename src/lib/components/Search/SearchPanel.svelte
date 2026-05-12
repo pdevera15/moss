@@ -1,111 +1,138 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import type { Note } from '$core/types'
-  import { getTagColors } from '$lib/utils/tagColors'
-  import { recentSearches, searchNotes, semanticSearch, type SearchResult, type SemanticResult } from '$lib/stores/search.svelte'
-  import { notesStore } from '$lib/stores/notes.svelte'
+  import { onMount } from "svelte";
+  import type { Note } from "$core/types";
+  import { getTagColors } from "$lib/utils/tagColors";
+  import {
+    recentSearches,
+    searchNotes,
+    semanticSearch,
+    type SearchResult,
+    type SemanticResult,
+  } from "$lib/stores/search.svelte";
+  import { notesStore } from "$lib/stores/notes.svelte";
 
   interface Props {
-    notes: Note[]
-    tags: string[]
-    onselect: (note: Note) => void
+    notes: Note[];
+    tags: string[];
+    onselect: (note: Note) => void;
   }
 
-  let { notes, tags, onselect }: Props = $props()
+  let { notes, tags, onselect }: Props = $props();
 
-  type ResultItem = { id: string; title: string; body: string; updated_at: number }
+  type ResultItem = {
+    id: string;
+    title: string;
+    body: string;
+    updated_at: number;
+  };
 
-  let query       = $state('')
-  let scope       = $state('All')
-  let activeId    = $state<string | null>(null)
-  let inputEl     = $state<HTMLInputElement | null>(null)
-  let isComposing = $state(false)
-  let ftsResults      = $state<SearchResult[]>([])
-  let semanticResults = $state<SemanticResult[]>([])
-  let searchVersion   = 0
-  let debounceTimer: ReturnType<typeof setTimeout>
+  let query = $state("");
+  let scope = $state("All");
+  let activeId = $state<string | null>(null);
+  let inputEl = $state<HTMLInputElement | null>(null);
+  let isComposing = $state(false);
+  let ftsResults = $state<SearchResult[]>([]);
+  let semanticResults = $state<SemanticResult[]>([]);
+  let searchVersion = 0;
+  let debounceTimer: ReturnType<typeof setTimeout>;
 
-  onMount(() => inputEl?.focus())
+  onMount(() => inputEl?.focus());
 
-  let scopes = $derived(['All', ...tags.slice(0, 4)])
+  let scopes = $derived(["All", ...tags.slice(0, 4)]);
 
   function extractTags(body: string): string[] {
-    const matches = body.match(/#\p{L}[\p{L}\p{N}_]*/gu) ?? []
-    return [...new Set(matches.map(t => t.toLocaleLowerCase()))]
+    const matches = body.match(/#\p{L}[\p{L}\p{N}_]*/gu) ?? [];
+    return [...new Set(matches.map((t) => t.toLocaleLowerCase()))];
   }
 
   function extractPreview(body: string): string {
-    const line = body.split('\n').find(l => l.trim() && !l.startsWith('#'))
-    return line?.replace(/[#*`_~>\-]/g, '').trim().slice(0, 100) ?? ''
+    const line = body.split("\n").find((l) => l.trim() && !l.startsWith("#"));
+    return (
+      line
+        ?.replace(/[#*`_~>\-]/g, "")
+        .trim()
+        .slice(0, 100) ?? ""
+    );
   }
 
   function formatDate(ts: number): string {
-    const diffDays = Math.floor((Date.now() - ts) / 86400000)
-    if (diffDays < 1)  return 'Today'
-    if (diffDays < 2)  return 'Yesterday'
-    return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const diffDays = Math.floor((Date.now() - ts) / 86400000);
+    if (diffDays < 1) return "Today";
+    if (diffDays < 2) return "Yesterday";
+    return new Date(ts).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
   }
 
   function triggerSearch(q: string) {
-    clearTimeout(debounceTimer)
-    ftsResults = []
-    semanticResults = []
-    if (!q.trim()) return
-    const version = ++searchVersion
+    clearTimeout(debounceTimer);
+    ftsResults = [];
+    semanticResults = [];
+    if (!q.trim()) return;
+    const version = ++searchVersion;
     debounceTimer = setTimeout(async () => {
-      const fts = await searchNotes(q)
-      if (version !== searchVersion) return
-      ftsResults = fts
+      const fts = await searchNotes(q);
+      if (version !== searchVersion) return;
+      ftsResults = fts;
       if (fts.length < 5) {
-        const sem = await semanticSearch(q)
-        if (version !== searchVersion) return
-        semanticResults = sem
+        const sem = await semanticSearch(q);
+        if (version !== searchVersion) return;
+        semanticResults = sem;
       }
-    }, 200)
+    }, 200);
   }
 
   function handleSemanticSelect(result: SemanticResult) {
-    const note = notesStore.notes.find(n => n.id === result.id)
-    if (!note) return
-    onselect(note)
+    const note = notesStore.notes.find((n) => n.id === result.id);
+    if (!note) return;
+    onselect(note);
   }
 
   let results = $derived<ResultItem[]>(
     (() => {
-      const q = query.trim()
+      const q = query.trim();
       const scopeFilter = (arr: ResultItem[]) =>
-        scope === 'All' ? arr : arr.filter(n => extractTags(n.body).includes(scope))
+        scope === "All"
+          ? arr
+          : arr.filter((n) => extractTags(n.body).includes(scope));
 
-      if (!q) return scope === 'All' ? [] : scopeFilter(notes).slice(0, 8)
-      return scopeFilter(ftsResults).slice(0, 8)
-    })()
-  )
+      if (!q) return scope === "All" ? [] : scopeFilter(notes).slice(0, 8);
+      return scopeFilter(ftsResults).slice(0, 8);
+    })(),
+  );
 
-  let showIdle = $derived(!query.trim() && scope === 'All')
+  let showIdle = $derived(!query.trim() && scope === "All");
 
   function hl(text: string, q: string): string {
-    if (!q.trim()) return esc(text)
-    const i = text.toLocaleLowerCase().indexOf(q.toLocaleLowerCase())
-    if (i === -1) return esc(text)
-    return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length))
+    if (!q.trim()) return esc(text);
+    const i = text.toLocaleLowerCase().indexOf(q.toLocaleLowerCase());
+    if (i === -1) return esc(text);
+    return (
+      esc(text.slice(0, i)) +
+      "<mark>" +
+      esc(text.slice(i, i + q.length)) +
+      "</mark>" +
+      esc(text.slice(i + q.length))
+    );
   }
 
   function esc(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
   function handleSelect(item: ResultItem) {
-    const note = notesStore.notes.find(n => n.id === item.id)
-    if (!note) return
-    const q = query.trim()
-    if (q && !recentSearches.items.includes(q)) recentSearches.push(q)
-    onselect(note)
+    const note = notesStore.notes.find((n) => n.id === item.id);
+    if (!note) return;
+    const q = query.trim();
+    if (q && !recentSearches.items.includes(q)) recentSearches.push(q);
+    onselect(note);
   }
 
   function useRecent(s: string) {
-    query = s
-    triggerSearch(s)
-    inputEl?.focus()
+    query = s;
+    triggerSearch(s);
+    inputEl?.focus();
   }
 </script>
 
@@ -114,8 +141,22 @@
   <div class="input-wrap">
     <div class="input-row">
       <svg class="icon" width="13" height="13" viewBox="0 0 16 16" fill="none">
-        <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-        <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <circle
+          cx="7"
+          cy="7"
+          r="4.5"
+          stroke="currentColor"
+          stroke-width="1.5"
+        />
+        <line
+          x1="10.5"
+          y1="10.5"
+          x2="14"
+          y2="14"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+        />
       </svg>
       <input
         bind:this={inputEl}
@@ -124,12 +165,29 @@
         placeholder="Search…"
         autocomplete="off"
         spellcheck="false"
-        oninput={() => { if (!isComposing) triggerSearch(query) }}
-        oncompositionstart={() => { isComposing = true; ftsResults = [] }}
-        oncompositionend={() => { isComposing = false; triggerSearch(query) }}
+        oninput={() => {
+          if (!isComposing) triggerSearch(query);
+        }}
+        oncompositionstart={() => {
+          isComposing = true;
+          ftsResults = [];
+        }}
+        oncompositionend={() => {
+          isComposing = false;
+          triggerSearch(query);
+        }}
       />
       {#if query}
-        <button class="clear-btn" onclick={() => { query = ''; ftsResults = []; semanticResults = []; inputEl?.focus() }} aria-label="Clear">×</button>
+        <button
+          class="clear-btn"
+          onclick={() => {
+            query = "";
+            ftsResults = [];
+            semanticResults = [];
+            inputEl?.focus();
+          }}
+          aria-label="Clear">×</button
+        >
       {/if}
     </div>
   </div>
@@ -138,13 +196,17 @@
   {#if tags.length > 0}
     <div class="scopes">
       {#each scopes as s}
-        {@const isTag = s.startsWith('#')}
+        {@const isTag = s.startsWith("#")}
         {@const c = isTag ? getTagColors(s) : null}
         <button
           class="scope-chip"
           class:active={scope === s}
-          style:--chip-color={scope === s ? '#fff' : (c?.text ?? 'var(--color-text-muted)')}
-          onclick={() => { scope = s }}
+          style:--chip-color={scope === s
+            ? "#fff"
+            : (c?.text ?? "var(--color-text-muted)")}
+          onclick={() => {
+            scope = s;
+          }}
         >
           {s}
         </button>
@@ -161,7 +223,12 @@
         {#each recentSearches.items as s}
           <button class="recent-row" onclick={() => useRecent(s)}>
             <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm0 2v4l3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <path
+                d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm0 2v4l3 2"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+              />
             </svg>
             {s}
           </button>
@@ -180,17 +247,19 @@
         <div
           class="result-row"
           class:active={isActive}
-          onmouseenter={() => activeId = result.id}
-          onmouseleave={() => activeId = null}
+          onmouseenter={() => (activeId = result.id)}
+          onmouseleave={() => (activeId = null)}
           onclick={() => handleSelect(result)}
           role="button"
           tabindex="0"
-          onkeydown={(e) => e.key === 'Enter' && handleSelect(result)}
+          onkeydown={(e) => e.key === "Enter" && handleSelect(result)}
         >
           {#if isActive}
             <div class="active-bar"></div>
           {/if}
-          <div class="result-title">{@html hl(result.title || 'Untitled', query)}</div>
+          <div class="result-title">
+            {@html hl(result.title || "Untitled", query)}
+          </div>
           {#if preview}
             <div class="result-preview">{@html hl(preview, query)}</div>
           {/if}
@@ -198,7 +267,11 @@
             <div class="result-tags">
               {#each noteTags.slice(0, 3) as tag}
                 {@const c = getTagColors(tag)}
-                <span class="tag-chip" style:color={c.text} style:background={c.bg}>{tag}</span>
+                <span
+                  class="tag-chip"
+                  style:color={c.text}
+                  style:background={c.bg}>{tag}</span
+                >
               {/each}
             </div>
             <span class="result-date">{formatDate(result.updated_at)}</span>
@@ -214,10 +287,10 @@
             role="button"
             tabindex="0"
             onclick={() => handleSemanticSelect(result)}
-            onkeydown={(e) => e.key === 'Enter' && handleSemanticSelect(result)}
+            onkeydown={(e) => e.key === "Enter" && handleSemanticSelect(result)}
           >
             <div class="sem-row">
-              <div class="result-title">{result.title || 'Untitled'}</div>
+              <div class="result-title">{result.title || "Untitled"}</div>
               <span class="sem-score">{Math.round(result.score * 100)}%</span>
             </div>
           </div>
@@ -229,7 +302,7 @@
   <!-- Footer count -->
   {#if query.trim() && results.length > 0}
     <div class="footer">
-      {results.length} result{results.length > 1 ? 's' : ''}
+      {results.length} result{results.length > 1 ? "s" : ""}
     </div>
   {/if}
 </div>
@@ -274,7 +347,9 @@
     min-width: 0;
   }
 
-  .input::placeholder { color: var(--color-text-muted); }
+  .input::placeholder {
+    color: var(--color-text-muted);
+  }
 
   .clear-btn {
     background: none;
@@ -303,10 +378,12 @@
     font-family: var(--font-mono);
     border: none;
     cursor: pointer;
-    background: rgba(0,0,0,0.06);
+    background: rgba(0, 0, 0, 0.06);
     color: var(--chip-color, var(--color-text-muted));
     font-weight: 400;
-    transition: background 100ms, color 100ms;
+    transition:
+      background 100ms,
+      color 100ms;
     white-space: nowrap;
   }
 
@@ -350,8 +427,13 @@
     border-radius: 5px;
     transition: background 100ms;
   }
-  .recent-row:hover { background: var(--color-surface); }
-  .recent-row svg { color: var(--color-text-muted); flex-shrink: 0; }
+  .recent-row:hover {
+    background: var(--color-surface);
+  }
+  .recent-row svg {
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+  }
 
   .empty-hint {
     padding: 32px 16px;
@@ -377,12 +459,18 @@
     position: relative;
     transition: background 100ms;
   }
-  .result-row:hover  { background: var(--color-surface); }
-  .result-row.active { background: var(--color-surface-2); }
+  .result-row:hover {
+    background: var(--color-surface);
+  }
+  .result-row.active {
+    background: var(--color-surface-2);
+  }
 
   .active-bar {
     position: absolute;
-    left: 0; top: 7px; bottom: 7px;
+    left: 0;
+    top: 7px;
+    bottom: 7px;
     width: 2.5px;
     background: var(--color-moss);
     border-radius: 0 2px 2px 0;

@@ -12,7 +12,9 @@
     "tauri": "tauri",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "format": "prettier --write \"src/**/*.{svelte,js,ts,json,md}\" && cargo fmt",
+    "format:check": "prettier --check \"src/**/*.{svelte,js,ts,json,md}\" && cargo fmt -- --check"
   },
   "license": "MIT",
   "dependencies": {
@@ -50,6 +52,8 @@
     "@types/lodash": "^4.17.24",
     "drizzle-kit": "^0.31.10",
     "jsdom": "^29.0.2",
+    "prettier": "^3.8.3",
+    "prettier-plugin-svelte": "^3.5.2",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "tailwindcss": "^4.2.2",

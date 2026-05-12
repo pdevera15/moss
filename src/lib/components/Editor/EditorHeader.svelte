@@ -1,24 +1,24 @@
 <script lang="ts">
   let {
-    title = $bindable(''),
+    title = $bindable(""),
     ontitlechange,
     editorElement,
   }: {
-    title?: string
-    ontitlechange?: (value: string) => void
-    editorElement?: HTMLElement | null
-  } = $props()
+    title?: string;
+    ontitlechange?: (value: string) => void;
+    editorElement?: HTMLElement | null;
+  } = $props();
 
   function handleInput(e: Event) {
-    const value = (e.target as HTMLInputElement).value
-    title = value
-    ontitlechange?.(value)
+    const value = (e.target as HTMLInputElement).value;
+    title = value;
+    ontitlechange?.(value);
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault()
-      editorElement?.querySelector<HTMLElement>('.cm-content')?.focus()
+    if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      editorElement?.querySelector<HTMLElement>(".cm-content")?.focus();
     }
   }
 </script>

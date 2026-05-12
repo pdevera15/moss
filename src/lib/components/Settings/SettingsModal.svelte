@@ -1,30 +1,33 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { updater } from '$lib/stores/updater.svelte'
+  import { onMount } from "svelte";
+  import { updater } from "$lib/stores/updater.svelte";
 
-  let { open = $bindable(false), onclose }: {
-    open: boolean
-    onclose?: () => void
-  } = $props()
+  let {
+    open = $bindable(false),
+    onclose,
+  }: {
+    open: boolean;
+    onclose?: () => void;
+  } = $props();
 
-  type NavId = 'updates' | 'about'
+  type NavId = "updates" | "about";
 
-  let activeNav = $state<NavId>('updates')
+  let activeNav = $state<NavId>("updates");
 
   const HEADER: Record<NavId, { eyebrow: string; title: string }> = {
-    updates: { eyebrow: 'Updates', title: 'App version' },
-    about:   { eyebrow: 'About',   title: 'Moss'        },
-  }
+    updates: { eyebrow: "Updates", title: "App version" },
+    about: { eyebrow: "About", title: "Moss" },
+  };
 
-  onMount(() => updater.init())
+  onMount(() => updater.init());
 
   function closeModal() {
-    open = false
-    onclose?.()
+    open = false;
+    onclose?.();
   }
 
   function onKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') closeModal()
+    if (e.key === "Escape") closeModal();
   }
 </script>
 
@@ -34,7 +37,6 @@
   <div class="backdrop" onclick={closeModal} role="presentation"></div>
 
   <div class="dialog" role="dialog" aria-modal="true" aria-label="Settings">
-
     <!-- ── Left nav ────────────────────────────────────────────────────── -->
     <nav class="settings-nav">
       <div class="nav-logo">
@@ -42,10 +44,18 @@
         <span class="nav-logo-text">Settings</span>
       </div>
 
-      <button class="nav-btn" class:active={activeNav === 'updates'} onclick={() => (activeNav = 'updates')}>
+      <button
+        class="nav-btn"
+        class:active={activeNav === "updates"}
+        onclick={() => (activeNav = "updates")}
+      >
         Updates
       </button>
-      <button class="nav-btn" class:active={activeNav === 'about'} onclick={() => (activeNav = 'about')}>
+      <button
+        class="nav-btn"
+        class:active={activeNav === "about"}
+        onclick={() => (activeNav = "about")}
+      >
         About
       </button>
 
@@ -55,17 +65,14 @@
 
     <!-- ── Content ─────────────────────────────────────────────────────── -->
     <div class="content">
-
       <div class="content-header">
         <div class="content-eyebrow">{HEADER[activeNav].eyebrow}</div>
         <h2 class="content-title">{HEADER[activeNav].title}</h2>
       </div>
 
       <div class="content-body">
-
         <!-- ════════════════ UPDATES PANEL ════════════════ -->
-        {#if activeNav === 'updates'}
-
+        {#if activeNav === "updates"}
           <!-- Version hero -->
           <div class="version-block">
             <div class="moss-mark"><span>M</span></div>
@@ -74,33 +81,51 @@
                 <span class="app-name">Moss</span>
                 <span class="version-num">v{updater.currentVersion}</span>
 
-                {#if updater.updateState === 'checking'}
-                  <span class="pill pill--neutral"><span class="pill-dot"></span>Checking…</span>
-                {:else if updater.updateState === 'up-to-date'}
-                  <span class="pill pill--success"><span class="pill-dot"></span>Up to date</span>
-                {:else if updater.updateState === 'available'}
-                  <span class="pill pill--amber"><span class="pill-dot"></span>Update available</span>
-                {:else if updater.updateState === 'downloading'}
-                  <span class="pill pill--info"><span class="pill-dot"></span>Downloading</span>
-                {:else if updater.updateState === 'ready'}
-                  <span class="pill pill--success"><span class="pill-dot"></span>Ready to install</span>
-                {:else if updater.updateState === 'error'}
-                  <span class="pill pill--error"><span class="pill-dot"></span>Error</span>
+                {#if updater.updateState === "checking"}
+                  <span class="pill pill--neutral"
+                    ><span class="pill-dot"></span>Checking…</span
+                  >
+                {:else if updater.updateState === "up-to-date"}
+                  <span class="pill pill--success"
+                    ><span class="pill-dot"></span>Up to date</span
+                  >
+                {:else if updater.updateState === "available"}
+                  <span class="pill pill--amber"
+                    ><span class="pill-dot"></span>Update available</span
+                  >
+                {:else if updater.updateState === "downloading"}
+                  <span class="pill pill--info"
+                    ><span class="pill-dot"></span>Downloading</span
+                  >
+                {:else if updater.updateState === "ready"}
+                  <span class="pill pill--success"
+                    ><span class="pill-dot"></span>Ready to install</span
+                  >
+                {:else if updater.updateState === "error"}
+                  <span class="pill pill--error"
+                    ><span class="pill-dot"></span>Error</span
+                  >
                 {/if}
               </div>
 
               <div class="version-sub">
-                {#if updater.updateState === 'checking'}
+                {#if updater.updateState === "checking"}
                   Checking for updates…
-                {:else if updater.updateState === 'up-to-date'}
-                  You're on the latest stable release.{#if updater.releaseDate}&nbsp;<span class="sub-muted">Released {updater.releaseDate}.</span>{/if}
-                {:else if updater.updateState === 'available'}
-                  A new version is ready to download — <strong>v{updater.latestVersion}</strong>{#if updater.releaseDate}&nbsp;· released {updater.releaseDate}{/if}.
-                {:else if updater.updateState === 'downloading'}
-                  Downloading v{updater.latestVersion} in the background. You can keep working.
-                {:else if updater.updateState === 'ready'}
-                  v{updater.latestVersion} has been downloaded. Restart Moss to apply the update — your open notes will be preserved.
-                {:else if updater.updateState === 'error'}
+                {:else if updater.updateState === "up-to-date"}
+                  You're on the latest stable release.{#if updater.releaseDate}&nbsp;<span
+                      class="sub-muted">Released {updater.releaseDate}.</span
+                    >{/if}
+                {:else if updater.updateState === "available"}
+                  A new version is ready to download — <strong
+                    >v{updater.latestVersion}</strong
+                  >{#if updater.releaseDate}&nbsp;· released {updater.releaseDate}{/if}.
+                {:else if updater.updateState === "downloading"}
+                  Downloading v{updater.latestVersion} in the background. You can
+                  keep working.
+                {:else if updater.updateState === "ready"}
+                  v{updater.latestVersion} has been downloaded. Restart Moss to apply
+                  the update — your open notes will be preserved.
+                {:else if updater.updateState === "error"}
                   <span class="sub-error">{updater.errorMsg}</span>
                 {/if}
               </div>
@@ -108,24 +133,34 @@
           </div>
 
           <!-- State cards -->
-          {#if updater.updateState === 'up-to-date'}
+          {#if updater.updateState === "up-to-date"}
             <div class="panel-card">
-              <div class="changelog-heading">What's in {updater.currentVersion}</div>
+              <div class="changelog-heading">
+                What's in {updater.currentVersion}
+              </div>
               <div class="changelog-empty">Your app is fully up to date.</div>
             </div>
-
-          {:else if updater.updateState === 'available'}
+          {:else if updater.updateState === "available"}
             <div class="available-card">
               <div class="available-top">
                 <div>
                   <div class="whats-new-eyebrow">What's new</div>
-                  <div class="release-name">Version {updater.latestVersion}</div>
+                  <div class="release-name">
+                    Version {updater.latestVersion}
+                  </div>
                 </div>
-                <button class="btn-primary" onclick={() => updater.startDownload()}>
+                <button
+                  class="btn-primary"
+                  onclick={() => updater.startDownload()}
+                >
                   <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                    <path d="M6 1v8m0 0L3 6m3 3l3-3M2 11h8"
-                      stroke="currentColor" stroke-width="1.5"
-                      stroke-linecap="round" stroke-linejoin="round"/>
+                    <path
+                      d="M6 1v8m0 0L3 6m3 3l3-3M2 11h8"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                   Download &amp; install
                 </button>
@@ -133,59 +168,91 @@
               {#if updater.releaseNotes}
                 <pre class="release-notes">{updater.releaseNotes}</pre>
               {:else}
-                <p class="release-notes-empty">No release notes for this version.</p>
+                <p class="release-notes-empty">
+                  No release notes for this version.
+                </p>
               {/if}
               <div class="available-footer">
-                <span class="release-notes-hint">Full changelog included above</span>
+                <span class="release-notes-hint"
+                  >Full changelog included above</span
+                >
               </div>
             </div>
-
-          {:else if updater.updateState === 'downloading'}
+          {:else if updater.updateState === "downloading"}
             <div class="panel-card">
               <div class="download-header">
-                <span class="download-label">Downloading {updater.latestVersion}</span>
+                <span class="download-label"
+                  >Downloading {updater.latestVersion}</span
+                >
                 <span class="download-bytes">
                   {#if updater.totalMB > 0}
-                    {updater.downloadedMB.toFixed(1)} / {updater.totalMB.toFixed(1)} MB&nbsp;·&nbsp;{updater.downloadPct}%
+                    {updater.downloadedMB.toFixed(1)} / {updater.totalMB.toFixed(
+                      1,
+                    )} MB&nbsp;·&nbsp;{updater.downloadPct}%
                   {:else}
                     {updater.downloadPct}%
                   {/if}
                 </span>
               </div>
               <div class="progress-track">
-                <div class="progress-fill" style:width="{updater.downloadPct}%"></div>
+                <div
+                  class="progress-fill"
+                  style:width="{updater.downloadPct}%"
+                ></div>
               </div>
               <span class="download-eta">Downloading…</span>
             </div>
-
-          {:else if updater.updateState === 'ready'}
+          {:else if updater.updateState === "ready"}
             <div class="ready-card">
               <div class="ready-left">
                 <div class="ready-icon-wrap">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <path d="M3 9a6 6 0 1 1 1.8 4.2M3 14v-3.5h3.5"
-                      stroke="var(--color-moss)" stroke-width="1.6"
-                      stroke-linecap="round" stroke-linejoin="round"/>
+                    <path
+                      d="M3 9a6 6 0 1 1 1.8 4.2M3 14v-3.5h3.5"
+                      stroke="var(--color-moss)"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 </div>
                 <div>
-                  <div class="ready-title">Restart to apply {updater.latestVersion}</div>
-                  <div class="ready-sub">Takes about 3 seconds · all unsaved work is auto-saved first</div>
+                  <div class="ready-title">
+                    Restart to apply {updater.latestVersion}
+                  </div>
+                  <div class="ready-sub">
+                    Takes about 3 seconds · all unsaved work is auto-saved first
+                  </div>
                 </div>
               </div>
               <div class="ready-actions">
                 <button class="btn-ghost" onclick={closeModal}>Later</button>
-                <button class="btn-primary" onclick={() => updater.restartNow()}>Restart now</button>
+                <button class="btn-primary" onclick={() => updater.restartNow()}
+                  >Restart now</button
+                >
               </div>
             </div>
-
-          {:else if updater.updateState === 'error'}
+          {:else if updater.updateState === "error"}
             <div class="error-card">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.4"/>
-                <path d="M8 5v3.5M8 11v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="7"
+                  stroke="currentColor"
+                  stroke-width="1.4"
+                />
+                <path
+                  d="M8 5v3.5M8 11v.5"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                />
               </svg>
-              <span>{updater.errorMsg || 'Something went wrong. Please try again.'}</span>
+              <span
+                >{updater.errorMsg ||
+                  "Something went wrong. Please try again."}</span
+              >
             </div>
           {/if}
 
@@ -207,23 +274,29 @@
               </div>
               <div class="footer-meta">
                 Channel:&nbsp;<span class="meta-em">Stable</span>
-                &nbsp;·&nbsp;
-                Last checked:&nbsp;<span class="meta-em">{updater.lastChecked}</span>
+                &nbsp;·&nbsp; Last checked:&nbsp;<span class="meta-em"
+                  >{updater.lastChecked}</span
+                >
               </div>
             </div>
-            <button class="btn-ghost" onclick={() => updater.checkForUpdates()} disabled={updater.updateState === 'downloading'}>
+            <button
+              class="btn-ghost"
+              onclick={() => updater.checkForUpdates()}
+              disabled={updater.updateState === "downloading"}
+            >
               Check for updates
             </button>
           </div>
 
-        <!-- ════════════════ ABOUT PANEL ════════════════ -->
-        {:else if activeNav === 'about'}
-
+          <!-- ════════════════ ABOUT PANEL ════════════════ -->
+        {:else if activeNav === "about"}
           <div class="about-hero">
             <div class="about-mark"><span>M</span></div>
             <div class="about-name">Moss</div>
             <div class="about-version">Version {updater.currentVersion}</div>
-            <div class="about-tagline">A warm, fast, cross-platform note-taking app.</div>
+            <div class="about-tagline">
+              A warm, fast, cross-platform note-taking app.
+            </div>
           </div>
 
           <div class="about-divider"></div>
@@ -233,9 +306,7 @@
             <span class="about-footer-sep">·</span>
             <span>Made with care for writers, learners, and thinkers.</span>
           </div>
-
         {/if}
-
       </div>
     </div>
   </div>
@@ -322,7 +393,9 @@
     font-family: var(--font-mono);
     cursor: pointer;
     margin-bottom: 1px;
-    transition: background 0.1s, color 0.1s;
+    transition:
+      background 0.1s,
+      color 0.1s;
   }
 
   .nav-btn:hover:not(.active) {
@@ -336,7 +409,9 @@
     font-weight: 500;
   }
 
-  .nav-spacer { flex: 1; }
+  .nav-spacer {
+    flex: 1;
+  }
 
   .nav-version {
     padding: 10px 11px 0;
@@ -410,7 +485,10 @@
     font-family: var(--font-body);
   }
 
-  .version-info { flex: 1; min-width: 0; }
+  .version-info {
+    flex: 1;
+    min-width: 0;
+  }
 
   .version-row {
     display: flex;
@@ -440,9 +518,15 @@
     line-height: 1.55;
   }
 
-  .version-sub strong { color: var(--color-text); }
-  .sub-muted  { color: var(--color-text-muted); }
-  .sub-error  { color: #a84848; }
+  .version-sub strong {
+    color: var(--color-text);
+  }
+  .sub-muted {
+    color: var(--color-text-muted);
+  }
+  .sub-error {
+    color: #a84848;
+  }
 
   /* ── Status pills ─────────────────────────────────────────────────────── */
   .pill {
@@ -462,20 +546,45 @@
     flex-shrink: 0;
   }
 
-  .pill--success { background: var(--color-moss-tint); color: var(--color-moss-dark); }
-  .pill--success .pill-dot { background: var(--color-moss); }
+  .pill--success {
+    background: var(--color-moss-tint);
+    color: var(--color-moss-dark);
+  }
+  .pill--success .pill-dot {
+    background: var(--color-moss);
+  }
 
-  .pill--amber { background: rgba(196, 144, 90, 0.14); color: #7a5a35; }
-  .pill--amber .pill-dot { background: var(--color-amber); }
+  .pill--amber {
+    background: rgba(196, 144, 90, 0.14);
+    color: #7a5a35;
+  }
+  .pill--amber .pill-dot {
+    background: var(--color-amber);
+  }
 
-  .pill--info { background: rgba(91, 143, 168, 0.13); color: #3b5c6e; }
-  .pill--info .pill-dot { background: #5b8fa8; }
+  .pill--info {
+    background: rgba(91, 143, 168, 0.13);
+    color: #3b5c6e;
+  }
+  .pill--info .pill-dot {
+    background: #5b8fa8;
+  }
 
-  .pill--neutral { background: rgba(0,0,0,0.05); color: var(--color-text-muted); }
-  .pill--neutral .pill-dot { background: var(--color-text-faint); }
+  .pill--neutral {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--color-text-muted);
+  }
+  .pill--neutral .pill-dot {
+    background: var(--color-text-faint);
+  }
 
-  .pill--error { background: rgba(168,72,72,0.10); color: #a84848; }
-  .pill--error .pill-dot { background: #a84848; }
+  .pill--error {
+    background: rgba(168, 72, 72, 0.1);
+    color: #a84848;
+  }
+  .pill--error .pill-dot {
+    background: #a84848;
+  }
 
   /* ── Panel card ───────────────────────────────────────────────────────── */
   .panel-card {
@@ -502,8 +611,12 @@
 
   /* ── Update available ─────────────────────────────────────────────────── */
   .available-card {
-    background: linear-gradient(180deg, rgba(196,144,90,0.09), rgba(196,144,90,0.02));
-    border: 1px solid rgba(196,144,90,0.30);
+    background: linear-gradient(
+      180deg,
+      rgba(196, 144, 90, 0.09),
+      rgba(196, 144, 90, 0.02)
+    );
+    border: 1px solid rgba(196, 144, 90, 0.3);
     border-radius: 10px;
     padding: 16px 16px 14px;
   }
@@ -553,7 +666,7 @@
 
   .available-footer {
     padding-top: 10px;
-    border-top: 1px dashed rgba(196,144,90,0.32);
+    border-top: 1px dashed rgba(196, 144, 90, 0.32);
   }
 
   .release-notes-hint {
@@ -584,7 +697,7 @@
 
   .progress-track {
     height: 6px;
-    background: rgba(0,0,0,0.06);
+    background: rgba(0, 0, 0, 0.06);
     border-radius: 99px;
     overflow: hidden;
     margin-bottom: 8px;
@@ -595,7 +708,11 @@
     position: absolute;
     inset: 0;
     right: auto;
-    background: linear-gradient(90deg, var(--color-moss), var(--color-moss-dark));
+    background: linear-gradient(
+      90deg,
+      var(--color-moss),
+      var(--color-moss-dark)
+    );
     border-radius: 99px;
     transition: width 0.3s ease;
   }
@@ -610,8 +727,8 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    background: rgba(168,72,72,0.06);
-    border: 1px solid rgba(168,72,72,0.20);
+    background: rgba(168, 72, 72, 0.06);
+    border: 1px solid rgba(168, 72, 72, 0.2);
     border-radius: 9px;
     padding: 14px 16px;
     font-size: 12px;
@@ -619,12 +736,15 @@
     line-height: 1.55;
   }
 
-  .error-card svg { flex-shrink: 0; margin-top: 1px; }
+  .error-card svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
 
   /* ── Ready to restart ─────────────────────────────────────────────────── */
   .ready-card {
     background: var(--color-moss-tint);
-    border: 1px solid rgba(90,127,84,0.22);
+    border: 1px solid rgba(90, 127, 84, 0.22);
     border-radius: 10px;
     padding: 16px 18px;
     display: flex;
@@ -644,7 +764,7 @@
     height: 36px;
     border-radius: 8px;
     background: #fff;
-    border: 1px solid rgba(90,127,84,0.18);
+    border: 1px solid rgba(90, 127, 84, 0.18);
     display: grid;
     place-items: center;
     flex-shrink: 0;
@@ -683,14 +803,23 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-    transition: opacity 0.1s, transform 0.05s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    transition:
+      opacity 0.1s,
+      transform 0.05s;
     flex-shrink: 0;
   }
 
-  .btn-primary:hover           { opacity: 0.88; }
-  .btn-primary:active          { transform: translateY(1px); }
-  .btn-primary:disabled        { opacity: 0.45; cursor: default; }
+  .btn-primary:hover {
+    opacity: 0.88;
+  }
+  .btn-primary:active {
+    transform: translateY(1px);
+  }
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
 
   .btn-ghost {
     background: transparent;
@@ -702,11 +831,19 @@
     font-weight: 500;
     font-family: var(--font-mono);
     cursor: pointer;
-    transition: background 0.1s, color 0.1s;
+    transition:
+      background 0.1s,
+      color 0.1s;
   }
 
-  .btn-ghost:hover    { background: rgba(0,0,0,0.04); color: var(--color-text); }
-  .btn-ghost:disabled { opacity: 0.45; cursor: default; }
+  .btn-ghost:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--color-text);
+  }
+  .btn-ghost:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
 
   /* ── Footer ───────────────────────────────────────────────────────────── */
   .footer-divider {
@@ -743,14 +880,16 @@
     line-height: 1.6;
   }
 
-  .meta-em { color: var(--color-text-muted); }
+  .meta-em {
+    color: var(--color-text-muted);
+  }
 
   /* ── Toggle ───────────────────────────────────────────────────────────── */
   .toggle {
     width: 28px;
     height: 16px;
     border-radius: 99px;
-    background: rgba(0,0,0,0.15);
+    background: rgba(0, 0, 0, 0.15);
     border: none;
     position: relative;
     cursor: pointer;
@@ -759,7 +898,9 @@
     flex-shrink: 0;
   }
 
-  .toggle.on { background: var(--color-moss); }
+  .toggle.on {
+    background: var(--color-moss);
+  }
 
   .toggle-knob {
     position: absolute;
@@ -769,11 +910,13 @@
     height: 12px;
     border-radius: 50%;
     background: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     transition: left 0.15s;
   }
 
-  .toggle.on .toggle-knob { left: 14px; }
+  .toggle.on .toggle-knob {
+    left: 14px;
+  }
 
   /* ── About panel ──────────────────────────────────────────────────────── */
   .about-hero {
@@ -792,7 +935,7 @@
     display: grid;
     place-items: center;
     margin-bottom: 14px;
-    box-shadow: 0 2px 8px rgba(90,127,84,0.25);
+    box-shadow: 0 2px 8px rgba(90, 127, 84, 0.25);
   }
 
   .about-mark span {
@@ -845,6 +988,7 @@
     flex-wrap: wrap;
   }
 
-  .about-footer-sep { color: var(--color-text-muted); }
-
+  .about-footer-sep {
+    color: var(--color-text-muted);
+  }
 </style>

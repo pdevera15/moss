@@ -1,44 +1,44 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { check } from '@tauri-apps/plugin-updater'
+  import { onMount } from "svelte";
+  import { check } from "@tauri-apps/plugin-updater";
 
-  let updateAvailable = $state(false)
-  let updateVersion = $state('')
-  let updateNotes = $state('')
-  let installing = $state(false)
-  let installed = $state(false)
-  let updateHandle: Awaited<ReturnType<typeof check>> = null
+  let updateAvailable = $state(false);
+  let updateVersion = $state("");
+  let updateNotes = $state("");
+  let installing = $state(false);
+  let installed = $state(false);
+  let updateHandle: Awaited<ReturnType<typeof check>> = null;
 
   onMount(async () => {
     // macOS updates are not supported (requires Apple notarization)
-    if (/mac/i.test(navigator.platform)) return
+    if (/mac/i.test(navigator.platform)) return;
 
     try {
-      const update = await check()
-      if (update?.available) {
-        updateHandle = update
-        updateVersion = update.version
-        updateNotes = update.body ?? ''
-        updateAvailable = true
+      const update = await check();
+      if (update) {
+        updateHandle = update;
+        updateVersion = update.version;
+        updateNotes = update.body ?? "";
+        updateAvailable = true;
       }
     } catch {
       // silently ignore — network offline or no release yet
     }
-  })
+  });
 
   async function installUpdate() {
-    if (!updateHandle) return
-    installing = true
+    if (!updateHandle) return;
+    installing = true;
     try {
-      await updateHandle.downloadAndInstall()
-      installed = true
+      await updateHandle.downloadAndInstall();
+      installed = true;
     } catch {
-      installing = false
+      installing = false;
     }
   }
 
   function dismiss() {
-    updateAvailable = false
+    updateAvailable = false;
   }
 </script>
 
@@ -54,13 +54,22 @@
       {#if installed}
         <span class="installed-note">Restart to apply</span>
       {:else}
-        <button class="btn-install" onclick={installUpdate} disabled={installing}>
-          {installing ? 'Installing…' : 'Update'}
+        <button
+          class="btn-install"
+          onclick={installUpdate}
+          disabled={installing}
+        >
+          {installing ? "Installing…" : "Update"}
         </button>
       {/if}
       <button class="btn-dismiss" onclick={dismiss} aria-label="Dismiss">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path
+            d="M1 1l10 10M11 1L1 11"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
         </svg>
       </button>
     </div>
@@ -80,7 +89,7 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
 
   .update-info {
@@ -122,8 +131,13 @@
     transition: opacity 120ms;
   }
 
-  .btn-install:hover:not(:disabled) { opacity: 0.85; }
-  .btn-install:disabled { opacity: 0.55; cursor: default; }
+  .btn-install:hover:not(:disabled) {
+    opacity: 0.85;
+  }
+  .btn-install:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
 
   .btn-dismiss {
     display: grid;
@@ -139,7 +153,9 @@
     transition: color 120ms;
   }
 
-  .btn-dismiss:hover { color: var(--color-text); }
+  .btn-dismiss:hover {
+    color: var(--color-text);
+  }
 
   .installed-note {
     font-size: 12px;

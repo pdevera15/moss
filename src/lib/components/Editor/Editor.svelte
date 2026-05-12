@@ -1,50 +1,71 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte'
-  import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
-  import { EditorState, Prec } from '@codemirror/state'
-  import { history, historyKeymap, defaultKeymap, indentWithTab } from '@codemirror/commands'
-  import { markdown } from '@codemirror/lang-markdown'
-  import { languages } from '@codemirror/language-data'
-  import { Strikethrough, Table } from '@lezer/markdown'
-  import { getMossTheme, getMossHighlighting } from '$lib/editor/mossTheme'
-  import { markdownDecorations } from '$lib/editor/markdownDecorations'
-  import { floatingToolbar, markdownKeymap, rightClickGuard } from '$lib/editor/floatingToolbar'
+  import { onMount, onDestroy } from "svelte";
+  import {
+    EditorView,
+    keymap,
+    placeholder as cmPlaceholder,
+  } from "@codemirror/view";
+  import { EditorState, Prec } from "@codemirror/state";
+  import {
+    history,
+    historyKeymap,
+    defaultKeymap,
+    indentWithTab,
+  } from "@codemirror/commands";
+  import { markdown } from "@codemirror/lang-markdown";
+  import { languages } from "@codemirror/language-data";
+  import { Strikethrough, Table } from "@lezer/markdown";
+  import { getMossTheme, getMossHighlighting } from "$lib/editor/mossTheme";
+  import { markdownDecorations } from "$lib/editor/markdownDecorations";
+  import {
+    floatingToolbar,
+    markdownKeymap,
+    rightClickGuard,
+  } from "$lib/editor/floatingToolbar";
 
   let {
-    value = $bindable(''),
+    value = $bindable(""),
     onchange,
-    placeholder = 'Start writing…',
+    placeholder = "Start writing…",
   }: {
-    value?: string
-    onchange?: (value: string) => void
-    placeholder?: string
-  } = $props()
+    value?: string;
+    onchange?: (value: string) => void;
+    placeholder?: string;
+  } = $props();
 
-  let container: HTMLDivElement
-  let view: EditorView
-  let isExternalUpdate = false
+  let container: HTMLDivElement;
+  let view: EditorView;
+  let isExternalUpdate = false;
 
-  function debounce<T extends (...args: never[]) => void>(fn: T, ms: number): T & { cancel(): void } {
-    let timer: ReturnType<typeof setTimeout>
-    const d = ((...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms) }) as T & { cancel(): void }
-    d.cancel = () => clearTimeout(timer)
-    return d
+  function debounce<T extends (...args: never[]) => void>(
+    fn: T,
+    ms: number,
+  ): T & { cancel(): void } {
+    let timer: ReturnType<typeof setTimeout>;
+    const d = ((...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    }) as T & { cancel(): void };
+    d.cancel = () => clearTimeout(timer);
+    return d;
   }
 
-  const emitChange = debounce((v: string) => onchange?.(v), 300)
+  const emitChange = debounce((v: string) => onchange?.(v), 300);
 
   // Sync external value changes (e.g. switching notes) into CodeMirror.
   // Cancel any pending debounced emit so stale content can't overwrite the new note.
   $effect(() => {
-    if (!view) return
-    const current = view.state.doc.toString()
+    if (!view) return;
+    const current = view.state.doc.toString();
     if (value !== current) {
-      emitChange.cancel()
-      isExternalUpdate = true
-      view.dispatch({ changes: { from: 0, to: current.length, insert: value } })
-      isExternalUpdate = false
+      emitChange.cancel();
+      isExternalUpdate = true;
+      view.dispatch({
+        changes: { from: 0, to: current.length, insert: value },
+      });
+      isExternalUpdate = false;
     }
-  })
+  });
 
   // Focus the editor whenever the active note changes so the cursor is visible.
   onMount(() => {
@@ -55,66 +76,87 @@
         // line ("> " or ">") created by the markdown extension's auto-continue.
         // Must use Prec.highest so it fires before the markdown() extension's
         // own Enter handler, which would otherwise create yet another "> " line.
-        Prec.highest(keymap.of([{
-          key: 'Enter',
-          run(v) {
-            const range = v.state.selection.main
-            if (!range.empty) return false
-            const line = v.state.doc.lineAt(range.head)
-            if (line.text !== '>' && line.text !== '> ') return false
-            // Replace "> " with "\n" so the current line becomes empty and
-            // the cursor lands on the new blank line below it.
-            v.dispatch({
-              changes:        { from: line.from, to: line.to, insert: '\n' },
-              selection:      { anchor: line.from + 1 },
-              scrollIntoView: true,
-            })
-            return true
-          },
-        }])),
-        markdown({ codeLanguages: languages, extensions: [Strikethrough, Table] }),
+        Prec.highest(
+          keymap.of([
+            {
+              key: "Enter",
+              run(v) {
+                const range = v.state.selection.main;
+                if (!range.empty) return false;
+                const line = v.state.doc.lineAt(range.head);
+                if (line.text !== ">" && line.text !== "> ") return false;
+                // Replace "> " with "\n" so the current line becomes empty and
+                // the cursor lands on the new blank line below it.
+                v.dispatch({
+                  changes: { from: line.from, to: line.to, insert: "\n" },
+                  selection: { anchor: line.from + 1 },
+                  scrollIntoView: true,
+                });
+                return true;
+              },
+            },
+          ]),
+        ),
+        markdown({
+          codeLanguages: languages,
+          extensions: [Strikethrough, Table],
+        }),
         getMossTheme(false),
         getMossHighlighting(),
         markdownDecorations,
         floatingToolbar,
         rightClickGuard,
         history(),
-        keymap.of([...markdownKeymap, indentWithTab, ...defaultKeymap, ...historyKeymap]),
+        keymap.of([
+          ...markdownKeymap,
+          indentWithTab,
+          ...defaultKeymap,
+          ...historyKeymap,
+        ]),
         EditorView.lineWrapping,
         cmPlaceholder(placeholder),
-        EditorView.updateListener.of(update => {
-          if (!update.docChanged && !update.selectionSet && !update.viewportChanged) return
-          requestAnimationFrame(() => update.view.requestMeasure())
+        EditorView.updateListener.of((update) => {
+          if (
+            !update.docChanged &&
+            !update.selectionSet &&
+            !update.viewportChanged
+          )
+            return;
+          requestAnimationFrame(() => update.view.requestMeasure());
         }),
-        EditorView.updateListener.of(update => {
+        EditorView.updateListener.of((update) => {
           if (update.docChanged && !isExternalUpdate) {
-            const newValue = update.state.doc.toString()
-            value = newValue
-            emitChange(newValue)
+            const newValue = update.state.doc.toString();
+            value = newValue;
+            emitChange(newValue);
           }
         }),
       ],
-    })
+    });
 
-    view = new EditorView({ state, parent: container })
-    view.focus()
+    view = new EditorView({ state, parent: container });
+    view.focus();
 
     // Custom fonts (Lora, DM Serif Display, Geist Mono) load asynchronously.
     // CM6 measures line heights on mount using whatever font is rendered at
     // that instant — usually a fallback with different metrics. The error is
     // small per line but accumulates, so clicks land on the wrong line further
     // down the document. Re-measuring after fonts are ready fixes it.
-    document.fonts.ready.then(() => { view?.requestMeasure() })
-    document.fonts.addEventListener('loadingdone', onFontsLoaded)
-  })
+    document.fonts.ready.then(() => {
+      view?.requestMeasure();
+    });
+    document.fonts.addEventListener("loadingdone", onFontsLoaded);
+  });
 
-  function onFontsLoaded() { view?.requestMeasure() }
+  function onFontsLoaded() {
+    view?.requestMeasure();
+  }
 
   onDestroy(() => {
-    emitChange.cancel()
-    document.fonts.removeEventListener('loadingdone', onFontsLoaded)
-    view?.destroy()
-  })
+    emitChange.cancel();
+    document.fonts.removeEventListener("loadingdone", onFontsLoaded);
+    view?.destroy();
+  });
 </script>
 
 <div class="editor-host" bind:this={container}></div>
@@ -160,8 +202,12 @@
   }
 
   /* ── Inline decorations ───────────────────────────────────────────── */
-  :global(.cm-moss-bold)          { font-weight: 700; }
-  :global(.cm-moss-italic)        { font-style: italic; }
+  :global(.cm-moss-bold) {
+    font-weight: 700;
+  }
+  :global(.cm-moss-italic) {
+    font-style: italic;
+  }
   :global(.cm-moss-strikethrough) {
     text-decoration: line-through;
     color: var(--color-text-muted);
@@ -224,12 +270,11 @@
     overflow: hidden;
   }
   :global(.cm-moss-fenced-line) {
-    background:
-      linear-gradient(
-        to right,
-        transparent 0 64px,
-        var(--color-surface) 64px calc(100% - 64px),
-        transparent calc(100% - 64px)
+    background: linear-gradient(
+      to right,
+      transparent 0 64px,
+      var(--color-surface) 64px calc(100% - 64px),
+      transparent calc(100% - 64px)
     );
     font-family: var(--font-mono);
     font-size: 13px;
@@ -241,7 +286,7 @@
     position: relative;
   }
   :global(.cm-moss-hr::after) {
-    content: '';
+    content: "";
     position: absolute;
     left: 64px;
     right: 64px;
@@ -285,7 +330,7 @@
     border-color: var(--color-moss);
   }
   :global(.cm-moss-checkbox-checked::after) {
-    content: '';
+    content: "";
     position: absolute;
     left: 50%;
     top: 50%;
@@ -372,13 +417,27 @@
     letter-spacing: 0.07em;
     text-transform: uppercase;
   }
-  :global(.cm-moss-callout-type-info)    { color: var(--callout-info-border); }
-  :global(.cm-moss-callout-type-tip)     { color: var(--callout-tip-border); }
-  :global(.cm-moss-callout-type-success) { color: var(--callout-success-border); }
-  :global(.cm-moss-callout-type-warning) { color: var(--callout-warning-border); }
-  :global(.cm-moss-callout-type-danger)  { color: var(--callout-danger-border); }
-  :global(.cm-moss-callout-type-example) { color: var(--callout-example-border); }
-  :global(.cm-moss-callout-type-quote)   { color: var(--callout-quote-border); }
+  :global(.cm-moss-callout-type-info) {
+    color: var(--callout-info-border);
+  }
+  :global(.cm-moss-callout-type-tip) {
+    color: var(--callout-tip-border);
+  }
+  :global(.cm-moss-callout-type-success) {
+    color: var(--callout-success-border);
+  }
+  :global(.cm-moss-callout-type-warning) {
+    color: var(--callout-warning-border);
+  }
+  :global(.cm-moss-callout-type-danger) {
+    color: var(--callout-danger-border);
+  }
+  :global(.cm-moss-callout-type-example) {
+    color: var(--callout-example-border);
+  }
+  :global(.cm-moss-callout-type-quote) {
+    color: var(--callout-quote-border);
+  }
 
   /* ── Tables (GFM) ─────────────────────────────────────────────────── */
   :global(.cm-moss-table-wrapper) {
@@ -429,7 +488,7 @@
     border: none;
     background: transparent;
     border-radius: 4px;
-    color: #F0EEE9;
+    color: #f0eee9;
     font-size: 12px;
     font-weight: 600;
     font-family: var(--font-mono);

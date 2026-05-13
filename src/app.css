@@ -248,14 +248,3 @@ html, body {
     --callout-quote-color:    #DDD0B8;
   }
 }
-
-/* ── CodeMirror overrides — must live here to survive production bundling ── */
-.cm-editor.cm-focused {
-  outline: none;
-}
-
-.cm-editor .cm-moss-bullet {
-  display: inline;
-  color: var(--color-moss-light);
-  margin-right: 4px;
-}

@@ -205,21 +205,6 @@ html, body {
                 "Source Code Pro", Menlo, Consolas, monospace;
 }
 
-/* ── CodeMirror layout overrides ─────────────────────────────────────────
-   CM6 injects its theme via a dynamic <style> element at runtime.
-   Tauri's WebView2 can drop those styles in production builds.
-   Duplicate the structural padding here so it always applies. */
-.cm-editor .cm-content {
-  max-width: 760px;
-  margin: 0 auto;
-  padding-top: 48px;
-  padding-bottom: 48px;
-}
-.cm-editor .cm-line {
-  padding-left: 64px;
-  padding-right: 64px;
-}
-
 /* Dark theme skeleton — implement properly when theming is added */
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"],

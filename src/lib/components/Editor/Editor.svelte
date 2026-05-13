@@ -15,7 +15,7 @@
   import { markdown } from "@codemirror/lang-markdown";
   import { languages } from "@codemirror/language-data";
   import { Strikethrough, Table } from "@lezer/markdown";
-  import { getMossTheme, getMossHighlighting } from "$lib/editor/mossTheme";
+  import { getMossHighlighting } from "$lib/editor/mossTheme";
   import { markdownDecorations } from "$lib/editor/markdownDecorations";
   import {
     floatingToolbar,
@@ -101,7 +101,6 @@
           codeLanguages: languages,
           extensions: [Strikethrough, Table],
         }),
-        getMossTheme(false),
         getMossHighlighting(),
         markdownDecorations,
         floatingToolbar,
@@ -170,6 +169,51 @@
     background: var(--color-bg);
     cursor: text;
     color-scheme: light;
+  }
+
+  /* ── Editor structural layout — static CSS, compiled at build time ──── */
+  :global(.cm-editor) {
+    background: var(--color-bg);
+    height: 100%;
+    color: var(--color-text);
+  }
+  :global(.cm-editor .cm-scroller) {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.85;
+    overflow-x: hidden;
+  }
+  :global(.cm-editor .cm-content) {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 0;
+  }
+  :global(.cm-editor .cm-line) {
+    line-height: 1.85;
+    padding: 0 64px;
+  }
+  :global(.cm-editor.cm-focused .cm-selectionBackground),
+  :global(.cm-editor .cm-selectionBackground),
+  :global(.cm-editor ::selection) {
+    background-color: color-mix(in srgb, var(--color-moss) 15%, var(--color-bg));
+  }
+  :global(.cm-editor .cm-activeLine) {
+    background-color: var(--color-surface);
+    border-radius: var(--radius-sm);
+  }
+  :global(.cm-editor .cm-gutters) {
+    background: var(--color-bg);
+    border: none;
+    color: var(--color-text-faint);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+  :global(.cm-editor .cm-lineNumbers .cm-gutterElement) {
+    padding-right: 16px;
+  }
+  :global(.cm-editor .cm-placeholder) {
+    color: var(--color-text-faint);
+    font-style: italic;
   }
 
   /* Force cursor to always be amber — some line decorations use

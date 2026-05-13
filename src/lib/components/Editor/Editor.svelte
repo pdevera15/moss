@@ -275,10 +275,6 @@
     padding-left: 12px;
     color: var(--color-text-muted);
   }
-  :global(.cm-moss-bullet) {
-    color: var(--color-moss-light);
-    margin-right: 4px;
-  }
   :global(.cm-moss-ordered-mark) {
     font-family: var(--font-mono);
     font-size: 13px;

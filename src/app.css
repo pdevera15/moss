@@ -219,6 +219,7 @@ html, body {
   font-size: 15px;
   line-height: 1.85;
   overflow-x: hidden;
+  overflow-y: auto;
 }
 .cm-editor .cm-content {
   max-width: 760px;
@@ -472,6 +473,14 @@ html, body {
   margin: 0 3px;
   flex-shrink: 0;
 }
+
+/* Syntax token colors for fenced code blocks — class-based so no dynamic injection */
+.cm-moss-tok-keyword  { color: var(--color-moss-dark); font-weight: bold; }
+.cm-moss-tok-string   { color: var(--color-amber); }
+.cm-moss-tok-comment  { color: var(--color-text-muted); font-style: italic; }
+.cm-moss-tok-literal  { color: var(--color-moss); }
+.cm-moss-tok-operator { color: var(--color-text-muted); }
+.cm-moss-tok-type     { color: var(--color-moss-light); }
 
 /* Dark theme skeleton — implement properly when theming is added */
 @media (prefers-color-scheme: dark) {

@@ -211,8 +211,18 @@ html, body {
    production builds, making EditorView.theme() unreliable.
 ─────────────────────────────────────────────────────────────────────────── */
 
-/* Structural */
-.cm-editor { background: var(--color-bg); height: 100%; color: var(--color-text); }
+/* Structural — replicate CM6's base theme layout so these survive if
+   WebView2 drops CM6's dynamic StyleModule injection in production builds.
+   CM6 provides these via StyleModule.mount() which Tauri drops in prod. */
+.cm-editor {
+  background: var(--color-bg);
+  height: 100%;
+  color: var(--color-text);
+  display: flex !important;
+  flex-direction: column;
+  position: relative !important;
+  box-sizing: border-box;
+}
 .cm-editor.cm-focused { outline: none; }
 .cm-editor .cm-scroller {
   font-family: var(--font-body);
@@ -220,12 +230,28 @@ html, body {
   line-height: 1.85;
   overflow-x: hidden;
   overflow-y: auto;
+  /* CM6 base theme: scroller must have height:100% + flex to constrain
+     height so overflow-y:auto triggers — without this, scroller grows
+     with content and nothing scrolls */
+  height: 100%;
+  display: flex !important;
+  align-items: flex-start !important;
+  position: relative;
+  overflow-anchor: none;
 }
 .cm-editor .cm-content {
   max-width: 760px;
   margin: 0 auto;
   padding: 48px 0;
   caret-color: var(--color-amber) !important;
+  /* CM6 base theme + lineWrapping preset: without white-space:pre-wrap,
+     browser defaults to normal which word-wraps on decoration changes */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  flex-grow: 1;
+  flex-shrink: 0;
+  min-height: 100%;
 }
 .cm-editor .cm-line { line-height: 1.85; padding: 0 64px; }
 .cm-editor.cm-focused .cm-selectionBackground,

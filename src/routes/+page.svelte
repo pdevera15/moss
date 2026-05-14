@@ -473,6 +473,7 @@
     overflow: hidden;
     position: relative;
     cursor: text;
+    background: var(--color-bg);
   }
 
   .editor-state {

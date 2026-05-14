@@ -283,8 +283,15 @@ html, body {
 }
 .cm-editor .cm-moss-ordered-mark { font-family: var(--font-mono); font-size: 13px; color: var(--color-moss); }
 
-/* Bullet widget */
-.cm-editor .cm-moss-bullet { display: inline; color: var(--color-moss-light); margin-right: 4px; }
+/* Bullet list — hanging indent so wrapped lines stay flush with text, not bullet */
+.cm-editor .cm-moss-list-item { padding-left: calc(64px + 1.2em) !important; }
+.cm-editor .cm-moss-bullet {
+  display: inline-block;
+  width: 1.2em;
+  margin-left: -1.2em;
+  color: var(--color-moss-light);
+  vertical-align: baseline;
+}
 
 /* Fenced code blocks */
 .cm-editor .cm-moss-fence-open { color: transparent !important; overflow: hidden; position: relative; }

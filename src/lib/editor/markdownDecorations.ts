@@ -143,6 +143,7 @@ const cls = {
   link: Decoration.mark({ class: "cm-moss-link" }),
   blockquote: Decoration.line({ class: "cm-moss-blockquote" }),
   orderedMark: Decoration.mark({ class: "cm-moss-ordered-mark" }),
+  listItem: Decoration.line({ class: "cm-moss-list-item" }),
   tag: Decoration.mark({ class: "cm-moss-tag" }),
   hidden: Decoration.replace({}),
   hrLine: Decoration.line({ class: "cm-moss-hr" }),
@@ -487,7 +488,9 @@ function buildDecorations(view: EditorView): DecorationSet {
             // Unordered list: replace `-`/`*`/`+` + trailing space with a bullet
             // widget. ignoreEvent() returns false on BulletWidget so clicks still
             // reach CM6 and position the cursor correctly.
+            const lineStart = state.doc.lineAt(from).from;
             const lineEnd = state.doc.lineAt(from).to;
+            entries.push([lineStart, lineStart, cls.listItem]);
             entries.push([
               from,
               Math.min(to + 1, lineEnd),

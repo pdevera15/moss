@@ -275,6 +275,17 @@ html, body {
 .cm-editor .cm-cursor,
 .cm-editor .cm-dropCursor { border-left-color: var(--color-amber) !important; }
 
+/* CM6 base theme — widget buffer sits inline around widget replacements (e.g.
+   BulletWidget). Without height:1em the buffer collapses and can misalign the
+   widget relative to the surrounding text baseline. */
+.cm-editor .cm-widgetBuffer {
+  display: inline;
+  vertical-align: text-top;
+  width: 0;
+  height: 1em;
+}
+.cm-editor .cm-tab { display: inline-block; overflow: hidden; vertical-align: bottom; }
+
 /* Headings */
 .cm-editor .cm-moss-h1 {
   font-family: var(--font-title);

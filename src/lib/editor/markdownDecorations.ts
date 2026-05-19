@@ -778,13 +778,23 @@ function renderInline(parent: HTMLElement, text: string): void {
 }
 
 class TableWidget extends WidgetType {
-  constructor(readonly source: string) {
+  constructor(
+    readonly source: string,
+    readonly sourceFrom: number,
+  ) {
     super();
   }
 
-  toDOM(): HTMLElement {
+  toDOM(view: EditorView): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-moss-table-wrapper";
+    wrapper.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      view.dispatch({
+        selection: { anchor: this.sourceFrom },
+      });
+    });
 
     const lines = this.source.split("\n").filter((l) => l.trim().length > 0);
     if (lines.length < 2) {
@@ -834,7 +844,7 @@ class TableWidget extends WidgetType {
   }
 
   eq(other: TableWidget): boolean {
-    return this.source === other.source;
+    return this.source === other.source && this.sourceFrom === other.sourceFrom;
   }
 }
 
@@ -861,7 +871,10 @@ function buildTableDecorations(state: EditorState): DecorationSet {
       builder.add(
         firstLine.from,
         end,
-        Decoration.replace({ widget: new TableWidget(source), block: true }),
+        Decoration.replace({
+          widget: new TableWidget(source, firstLine.from),
+          block: true,
+        }),
       );
       return false;
     },

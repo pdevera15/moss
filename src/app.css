@@ -1,14 +1,18 @@
-/* ─── ui/themes/tokens.css ─────────────────────────────────────────────────
-   Design tokens as CSS custom properties.
-   This file is the single source of truth for all visual decisions.
-   Import in app.css — do not duplicate values elsewhere.
-──────────────────────────────────────────────────────────────────────────── */
+/* Moss global styles.
+   Keep this file ordered by concern:
+   1. Imports and Tailwind theme tokens
+   2. Runtime design tokens
+   3. Global browser defaults
+   4. Language font stacks
+   5. Static CodeMirror base shim
+   6. Moss editor markdown styles
+   7. Dark theme tokens */
 @import "tailwindcss";
 @import "@fontsource-variable/inter/standard.css";
 @import "@fontsource/biz-udpgothic/japanese-400.css";
 @import "@fontsource/lxgw-wenkai-tc/400.css";
 
-/* Geist Mono — loaded from npm package font files */
+/* Geist Mono - loaded from npm package font files. */
 @font-face {
   font-family: "GeistMono";
   src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
@@ -30,8 +34,8 @@
   --color-text-muted:   #6B6A63;
 
   /* Fonts */
-  --font-title: "Avenir Next", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", Georgia, serif;
-  --font-body:  "Avenir Next", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", Georgia, serif;
+  --font-title: "Avenir Next", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", Georgia, "Times New Roman", serif;
+  --font-body:  "Avenir Next", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", Georgia, "Times New Roman", serif;
   --font-mono:  "GeistMono", "GeistMonoVariable", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
   --font-sans:  "Avenir Next", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
 
@@ -61,7 +65,7 @@ html, body {
   padding: 0;
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: subpixel-antialiased;
@@ -96,13 +100,14 @@ html, body {
   --color-moss-dark:   #3F5C3B;   /* darker green for pressed */
   --color-moss-tint:   #EEF4ED;   /* very light green background */
 
-  --color-amber:       #C4905A;   /* cursor accent — used sparingly */
+  --color-amber:       #C4905A;   /* cursor accent - used sparingly */
+  --color-error:       #A84848;
 
   /* ── Typography ──────────────────────────────────────────────────────── */
   --font-title: "Avenir Next", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", Georgia, "Times New Roman", serif;
   --font-body:  "Avenir Next", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", Georgia, "Times New Roman", serif;
-  --font-mono:  "GeistMono", "GeistMonoVariable", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", ui-monospace, "Cascadia Code",
-                "Source Code Pro", Menlo, Consolas, monospace;
+  --font-mono:  "GeistMono", "GeistMonoVariable", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+  --font-sans:  "Avenir Next", "Inter Variable", "BIZ UDPGothic", "LXGW WenKai TC", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
 
   --font-size-xs:   11px;
   --font-size-sm:   12px;
@@ -131,6 +136,11 @@ html, body {
   --sidebar-width:    208px;
   --note-list-width:  264px;
   --editor-max-width: 760px;
+  --editor-page-padding: var(--space-12);
+  --editor-line-padding: var(--space-16);
+  --editor-block-padding: calc(var(--editor-line-padding) + var(--space-3));
+  --editor-cursor-width: 1.2px;
+  --editor-cursor-offset: -0.6px;
 
   /* ── Border radius ───────────────────────────────────────────────────── */
   --radius-sm: 4px;
@@ -237,13 +247,17 @@ html, body {
   display: flex !important;
   align-items: flex-start !important;
   position: relative;
+  z-index: 0;
   overflow-anchor: none;
 }
 .cm-editor .cm-content {
-  max-width: 760px;
+  display: block;
+  max-width: var(--editor-max-width);
   margin: 0 auto;
-  padding: 48px 0;
+  padding: var(--editor-page-padding) 0;
   caret-color: var(--color-amber) !important;
+  box-sizing: border-box;
+  outline: none;
   /* CM6 base theme + lineWrapping preset: without white-space:pre-wrap,
      browser defaults to normal which word-wraps on decoration changes */
   white-space: pre-wrap;
@@ -253,7 +267,20 @@ html, body {
   flex-shrink: 0;
   min-height: 100%;
 }
-.cm-editor .cm-line { line-height: 1.85; padding: 0 64px; }
+.cm-editor .cm-content[contenteditable="true"] {
+  -webkit-user-modify: read-write-plaintext-only;
+}
+.cm-editor .cm-lineWrapping {
+  white-space: break-spaces;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  flex-shrink: 1;
+}
+.cm-editor .cm-line {
+  display: block;
+  line-height: 1.85;
+  padding: 0 var(--editor-line-padding);
+}
 .cm-editor .cm-layer {
   position: absolute;
   left: 0;
@@ -270,10 +297,23 @@ html, body {
 }
 .cm-editor .cm-cursor {
   display: none;
-  margin-left: -0.6px;
+  margin-left: var(--editor-cursor-offset);
 }
 .cm-editor.cm-focused > .cm-scroller > .cm-cursorLayer .cm-cursor {
   display: block;
+}
+.cm-editor.cm-focused .cm-content,
+.cm-editor.cm-focused .cm-line {
+  caret-color: transparent !important;
+}
+.cm-editor .cm-cursor,
+.cm-editor .cm-dropCursor {
+  border-left: var(--editor-cursor-width) solid var(--color-amber) !important;
+  margin-left: var(--editor-cursor-offset);
+  pointer-events: none;
+}
+.cm-editor .cm-dropCursor {
+  position: absolute;
 }
 .cm-editor.cm-focused .cm-selectionBackground,
 .cm-editor .cm-selectionBackground,
@@ -284,17 +324,111 @@ html, body {
   background-color: var(--color-surface);
   border-radius: var(--radius-sm);
 }
+.cm-editor .cm-iso {
+  unicode-bidi: isolate;
+}
+.cm-editor .cm-announced {
+  position: fixed;
+  top: -10000px;
+}
+@media print {
+  .cm-editor .cm-announced {
+    display: none;
+  }
+}
+.cm-editor .cm-specialChar {
+  color: var(--color-error);
+}
 .cm-editor .cm-gutters {
+  display: flex;
+  flex-shrink: 0;
+  height: 100%;
+  box-sizing: border-box;
+  z-index: 200;
   background: var(--color-bg);
   border: none;
   color: var(--color-text-faint);
   font-family: var(--font-mono);
   font-size: 11px;
 }
-.cm-editor .cm-lineNumbers .cm-gutterElement { padding-right: 16px; }
-.cm-editor .cm-placeholder { color: var(--color-text-faint); font-style: italic; }
-.cm-editor .cm-cursor,
-.cm-editor .cm-dropCursor { border-left-color: var(--color-amber) !important; }
+.cm-editor .cm-gutters-before { inset-inline-start: 0; }
+.cm-editor .cm-gutters-after { inset-inline-end: 0; }
+.cm-editor .cm-gutter {
+  display: flex !important;
+  flex-direction: column;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-height: 100%;
+  overflow: hidden;
+}
+.cm-editor .cm-gutterElement {
+  box-sizing: border-box;
+}
+.cm-editor .cm-lineNumbers .cm-gutterElement {
+  min-width: 20px;
+  padding: 0 16px 0 5px;
+  text-align: right;
+  white-space: nowrap;
+}
+.cm-editor .cm-activeLineGutter {
+  background-color: var(--color-surface);
+}
+.cm-editor .cm-panels {
+  box-sizing: border-box;
+  position: sticky;
+  left: 0;
+  right: 0;
+  z-index: 300;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.cm-editor .cm-panels-top {
+  border-bottom: 1px solid var(--color-border);
+}
+.cm-editor .cm-panels-bottom {
+  border-top: 1px solid var(--color-border);
+}
+.cm-editor .cm-dialog {
+  padding: 2px 19px 4px 6px;
+  position: relative;
+}
+.cm-editor .cm-dialog label {
+  font-size: 80%;
+}
+.cm-editor .cm-dialog-close {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  background-color: inherit;
+  border: none;
+  font: inherit;
+  font-size: 14px;
+  padding: 0;
+}
+.cm-editor .cm-placeholder {
+  color: var(--color-text-faint);
+  display: inline-block;
+  font-style: italic;
+  user-select: none;
+  vertical-align: top;
+}
+.cm-editor .cm-button {
+  vertical-align: middle;
+  color: inherit;
+  font-size: 70%;
+  padding: 0.2em 1em;
+  border-radius: 1px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.cm-editor .cm-textfield {
+  vertical-align: middle;
+  color: inherit;
+  font-size: 70%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  padding: 0.2em 0.5em;
+}
 
 /* CM6 base theme — widget buffer sits inline around widget replacements (e.g.
    BulletWidget). Without height:1em the buffer collapses and can misalign the
@@ -336,14 +470,20 @@ html, body {
 }
 .cm-editor .cm-moss-link { color: var(--color-moss); text-decoration: underline; text-underline-offset: 2px; }
 .cm-editor .cm-moss-blockquote {
-  border-left: 3px solid var(--color-border);
-  padding-left: 12px;
+  border-left: none;
+  padding-left: var(--editor-block-padding) !important;
   color: var(--color-text-muted);
+  background: linear-gradient(
+    to right,
+    transparent 0 var(--editor-line-padding),
+    var(--color-border) var(--editor-line-padding) calc(var(--editor-line-padding) + 3px),
+    transparent calc(var(--editor-line-padding) + 3px)
+  );
 }
 .cm-editor .cm-moss-ordered-mark { font-family: var(--font-mono); font-size: 13px; color: var(--color-moss); }
 
 /* Bullet list — hanging indent so wrapped lines stay flush with text, not bullet */
-.cm-editor .cm-moss-list-item { padding-left: calc(64px + 1.2em) !important; }
+.cm-editor .cm-moss-list-item { padding-left: calc(var(--editor-line-padding) + 1.2em) !important; }
 .cm-editor .cm-moss-bullet {
   display: inline-block;
   width: 1.2em;
@@ -359,7 +499,7 @@ html, body {
   display: block;
   position: absolute;
   top: 4px;
-  right: 68px;
+  right: calc(var(--editor-line-padding) + 4px);
   font-family: var(--font-mono);
   font-size: 10px;
   line-height: 1;
@@ -376,14 +516,14 @@ html, body {
 .cm-editor .cm-moss-fenced-line {
   background: linear-gradient(
     to right,
-    transparent 0 64px,
-    var(--color-surface) 64px calc(100% - 64px),
-    transparent calc(100% - 64px)
+    transparent 0 var(--editor-line-padding),
+    var(--color-surface) var(--editor-line-padding) calc(100% - var(--editor-line-padding)),
+    transparent calc(100% - var(--editor-line-padding))
   );
   font-family: var(--font-mono);
   font-size: 13px;
-  padding-left: 76px !important;
-  padding-right: 76px !important;
+  padding-left: var(--editor-block-padding) !important;
+  padding-right: var(--editor-block-padding) !important;
 }
 
 /* Horizontal rule */
@@ -391,8 +531,8 @@ html, body {
 .cm-editor .cm-moss-hr::after {
   content: "";
   position: absolute;
-  left: 64px;
-  right: 64px;
+  left: var(--editor-line-padding);
+  right: var(--editor-line-padding);
   top: 50%;
   border-top: 1.5px solid var(--color-border);
   transform: translateY(-50%);
@@ -479,7 +619,7 @@ html, body {
 .cm-editor .cm-moss-callout-type-quote   { color: var(--callout-quote-border); }
 
 /* Tables */
-.cm-editor .cm-moss-table-wrapper { margin: var(--space-3) 0; overflow-x: auto; user-select: text; }
+.cm-editor .cm-moss-table-wrapper { margin: var(--space-3) var(--editor-line-padding); overflow-x: auto; user-select: text; }
 .cm-editor .cm-moss-table {
   border-collapse: collapse;
   font-family: var(--font-body);

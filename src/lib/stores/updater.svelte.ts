@@ -27,6 +27,7 @@ class UpdaterStore {
   autoUpdate = $state(true);
 
   #handle: Awaited<ReturnType<typeof check>> | null = null;
+  #downloadedVersion: string | null = null;
 
   async init() {
     if (!isTauri) {
@@ -54,8 +55,8 @@ class UpdaterStore {
         minute: "2-digit",
       });
       if (update) {
-        this.#handle = update;
-        this.latestVersion = update.version ?? "";
+        const version = update.version ?? "";
+        this.latestVersion = version;
         this.releaseNotes = update.body ?? "";
         this.releaseDate = update.date
           ? new Date(update.date).toLocaleDateString("en-US", {
@@ -64,7 +65,13 @@ class UpdaterStore {
               year: "numeric",
             })
           : "";
-        this.updateState = "available";
+        if (version === this.#downloadedVersion) {
+          // Already downloaded this version — stay in ready state, don't re-download
+          this.updateState = "ready";
+        } else {
+          this.#handle = update;
+          this.updateState = "available";
+        }
       } else {
         this.updateState = "up-to-date";
       }
@@ -77,12 +84,14 @@ class UpdaterStore {
 
   async startDownload() {
     if (!this.#handle) return;
+    const handle = this.#handle;
+    this.#handle = null;
     this.updateState = "downloading";
     this.downloadPct = 0;
     this.downloadedMB = 0;
     this.totalMB = 0;
     try {
-      await this.#handle.downloadAndInstall((event) => {
+      await handle.downloadAndInstall((event) => {
         if (event.event === "Started") {
           this.totalMB = (event.data.contentLength ?? 0) / 1_048_576;
         } else if (event.event === "Progress") {
@@ -96,6 +105,7 @@ class UpdaterStore {
               : 0;
         } else if (event.event === "Finished") {
           this.downloadPct = 100;
+          this.#downloadedVersion = this.latestVersion;
           this.updateState = "ready";
         }
       });

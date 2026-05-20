@@ -3,10 +3,16 @@ import {
   Decoration,
   type ViewUpdate,
   EditorView,
+  keymap,
   WidgetType,
 } from "@codemirror/view";
 import type { DecorationSet } from "@codemirror/view";
-import { RangeSetBuilder, StateField, EditorState } from "@codemirror/state";
+import {
+  Prec,
+  RangeSetBuilder,
+  StateField,
+  EditorState,
+} from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 
 class BulletWidget extends WidgetType {
@@ -777,6 +783,56 @@ function renderInline(parent: HTMLElement, text: string): void {
     parent.appendChild(document.createTextNode(text.slice(last)));
 }
 
+function moveCursorIntoAdjacentTable(
+  view: EditorView,
+  direction: "up" | "down",
+): boolean {
+  const selection = view.state.selection.main;
+  if (!selection.empty) return false;
+
+  const { state } = view;
+  const cursorLine = state.doc.lineAt(selection.head);
+  const cursorColumn = selection.head - cursorLine.from;
+  let target: number | null = null;
+
+  syntaxTree(state).iterate({
+    enter(node) {
+      if (node.name !== "Table") return;
+
+      const firstLine = state.doc.lineAt(node.from);
+      const lastLine = state.doc.lineAt(node.to);
+      if (direction === "down" && cursorLine.to + 1 === firstLine.from) {
+        target = firstLine.from + Math.min(cursorColumn, firstLine.length);
+        return false;
+      }
+      if (direction === "up" && cursorLine.from - 1 === lastLine.to) {
+        target = lastLine.from + Math.min(cursorColumn, lastLine.length);
+        return false;
+      }
+    },
+  });
+
+  if (target === null) return false;
+  view.dispatch({
+    selection: { anchor: target },
+    scrollIntoView: true,
+  });
+  return true;
+}
+
+const tableCursorKeymap = Prec.high(
+  keymap.of([
+    {
+      key: "ArrowDown",
+      run: (view) => moveCursorIntoAdjacentTable(view, "down"),
+    },
+    {
+      key: "ArrowUp",
+      run: (view) => moveCursorIntoAdjacentTable(view, "up"),
+    },
+  ]),
+);
+
 class TableWidget extends WidgetType {
   constructor(
     readonly source: string,
@@ -899,5 +955,6 @@ export const markdownDecorations = [
   headingDecorations,
   inlineDecorations,
   hrDecorations,
+  tableCursorKeymap,
   tableDecorations,
 ];

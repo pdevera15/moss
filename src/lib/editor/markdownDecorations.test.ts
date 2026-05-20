@@ -71,4 +71,36 @@ describe("markdownDecorations", () => {
     expect(view.state.selection.main.head).toBe(0);
     expect(parent.querySelector(".cm-moss-table-wrapper")).toBeNull();
   });
+
+  it("moves the cursor into rendered table markdown with vertical arrow keys", () => {
+    const tableMarkdown = "| Name | Value |\n| --- | --- |\n| Moss | Warm |";
+    const doc = `Above\n${tableMarkdown}\n\nBelow`;
+    const state = EditorState.create({
+      doc,
+      selection: { anchor: 0 },
+      extensions: [markdown({ extensions: [Table] }), markdownDecorations],
+    });
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const view = new EditorView({ state, parent });
+
+    expect(parent.querySelector(".cm-moss-table-wrapper")).not.toBeNull();
+
+    view.dispatch({ selection: { anchor: doc.indexOf("Above") } });
+    view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
+    );
+    expect(view.state.selection.main.head).toBe(doc.indexOf(tableMarkdown));
+    expect(parent.querySelector(".cm-moss-table-wrapper")).toBeNull();
+
+    const blankLineAfterTable = doc.indexOf("\n\nBelow") + 1;
+    view.dispatch({ selection: { anchor: blankLineAfterTable } });
+    view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }),
+    );
+    expect(view.state.selection.main.head).toBe(
+      doc.indexOf("| Moss | Warm |"),
+    );
+    view.destroy();
+  });
 });

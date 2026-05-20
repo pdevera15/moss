@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import {
+    drawSelection,
     EditorView,
     keymap,
     placeholder as cmPlaceholder,
@@ -74,6 +75,7 @@
       doc: value,
       extensions: [
         mossEditorTheme,
+        drawSelection(),
         // Highest-priority Enter handler: exits an empty blockquote continuation
         // line ("> " or ">") created by the markdown extension's auto-continue.
         // Must use Prec.highest so it fires before the markdown() extension's

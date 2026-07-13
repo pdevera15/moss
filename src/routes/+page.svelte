@@ -695,7 +695,7 @@
   }
 
   .nb-menu-item--danger {
-    color: var(--error);
+    color: var(--color-error);
   }
 
   /* ── Backdrop (click-outside to close menu) ── */

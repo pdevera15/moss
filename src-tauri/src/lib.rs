@@ -46,6 +46,11 @@ const EMBEDDED_MIGRATIONS: &[EmbeddedMigration] = &[
         description: "add_language",
         sql: include_str!("../migrations/0006_add_language.sql"),
     },
+    EmbeddedMigration {
+        version: 8,
+        description: "add_notebooks",
+        sql: include_str!("../migrations/0007_add_notebooks.sql"),
+    },
 ];
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

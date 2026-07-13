@@ -5,6 +5,14 @@ import {
   primaryKey,
 } from "drizzle-orm/sqlite-core";
 
+export const notebooks = sqliteTable("notebooks", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  position: integer("position").notNull().default(0),
+  created_at: integer("created_at").notNull(),
+  updated_at: integer("updated_at").notNull(),
+});
+
 export const notes = sqliteTable("notes", {
   id: text("id").primaryKey(),
   title: text("title").notNull().default(""),
@@ -12,6 +20,7 @@ export const notes = sqliteTable("notes", {
   created_at: integer("created_at").notNull(),
   updated_at: integer("updated_at").notNull(),
   language: text("language").notNull().default("en"),
+  notebook_id: text("notebook_id").references(() => notebooks.id),
 });
 
 export const tags = sqliteTable("tags", {

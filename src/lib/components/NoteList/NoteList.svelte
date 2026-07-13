@@ -6,15 +6,27 @@
     notes: Note[];
     activeId: string | null;
     activeTag: string | null;
+    title: string;
     onselect: (note: Note) => void;
     oncreate: () => void;
     ondelete: (id: string) => void;
   }
 
-  let { notes, activeId, activeTag, onselect, oncreate, ondelete }: Props =
-    $props();
+  let { notes, activeId, activeTag, title, onselect, oncreate, ondelete }: Props = $props();
 
   const RECENT_DATES = new Set(["Today", "Yesterday"]);
+
+  function stripMd(s: string): string {
+    return s
+      .replace(/^#{1,6}\s+/m, "")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/`(.+?)`/g, "$1")
+      .replace(/^[-*+]\s+/m, "")
+      .replace(/^>\s+/m, "")
+      .replace(/\[(.+?)\]\(.+?\)/g, "$1")
+      .trim();
+  }
 
   function formatDate(ts: number): string {
     const d = new Date(ts);
@@ -27,13 +39,6 @@
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   }
 
-  function formatTime(ts: number): string {
-    return new Date(ts).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  }
-
   function formatMonth(ts: number): string {
     return new Date(ts).toLocaleDateString("en-US", {
       month: "long",
@@ -43,12 +48,12 @@
 
   function extractTags(body: string): string[] {
     const matches = body.match(/#\p{L}[\p{L}\p{N}_]*/gu);
-    return matches ? [...new Set(matches)].slice(0, 3) : [];
+    return matches ? [...new Set(matches)].slice(0, 5) : [];
   }
 
   function extractPreview(body: string): string {
     const line = body.split("\n").find((l) => l.trim() && !l.startsWith("#"));
-    return line?.trim() ?? "";
+    return stripMd(line?.trim() ?? "");
   }
 
   function wordCount(body: string): number {
@@ -57,8 +62,8 @@
 
   interface NoteRow {
     note: Note;
+    displayTitle: string;
     date: string;
-    time: string;
     month: string;
     tags: string[];
     preview: string;
@@ -68,8 +73,11 @@
   let rows = $derived<NoteRow[]>(
     notes.map((n) => ({
       note: n,
+      displayTitle:
+        stripMd(n.title) ||
+        stripMd(n.body.split("\n").find((l) => l.trim()) ?? "") ||
+        "Untitled",
       date: formatDate(n.updated_at),
-      time: formatTime(n.updated_at),
       month: formatMonth(n.updated_at),
       tags: extractTags(n.body),
       preview: extractPreview(n.body),
@@ -90,8 +98,7 @@
       map.get(key)!.push(row);
     }
     const result: Group[] = [];
-    if (map.has("Recent"))
-      result.push({ key: "Recent", rows: map.get("Recent")! });
+    if (map.has("Recent")) result.push({ key: "Recent", rows: map.get("Recent")! });
     for (const [key, groupRows] of map) {
       if (key !== "Recent") result.push({ key, rows: groupRows });
     }
@@ -99,7 +106,6 @@
   }
 
   let groups = $derived(buildGroups(rows));
-
   let collapsed = $state<Record<string, boolean>>({});
 
   $effect(() => {
@@ -114,13 +120,11 @@
   $effect(() => {
     if (!activeTag) return;
     const expanded: Record<string, boolean> = {};
-    for (const g of groups) {
-      expanded[g.key] = false;
-    }
+    for (const g of groups) expanded[g.key] = false;
     collapsed = expanded;
   });
 
-  // When the active note changes (e.g. selected from search), expand its group
+  // When the active note changes, expand its group
   $effect(() => {
     if (!activeId) return;
     for (const g of groups) {
@@ -135,18 +139,11 @@
     collapsed = { ...collapsed, [key]: !collapsed[key] };
   }
 
-  // ── Overflow menu ─────────────────────────────────────────────────────────
+  // ── Overflow menu ────────────────────────────────────────────────────────
   let hoverId = $state<string | null>(null);
   let openMenuId = $state<string | null>(null);
   let menuPos = $state<{ top: number; right: number } | null>(null);
   let listScrollEl = $state<HTMLDivElement | null>(null);
-
-  // Determines whether to show "Pin note" (only for recent/full-card rows)
-  let openMenuIsRecent = $derived(
-    openMenuId
-      ? RECENT_DATES.has(rows.find((r) => r.note.id === openMenuId)?.date ?? "")
-      : false,
-  );
 
   $effect(() => {
     function onOutside(e: MouseEvent) {
@@ -208,18 +205,13 @@
     {#if activeTag}
       {@const c = getTagColors(activeTag)}
       <span class="list-title tag-active">
-        <span class="tag-dot" style:background={c.dot}></span>
+        <span class="tag-filter-dot" style:background={c.dot}></span>
         <span style:color={c.text}>{activeTag}</span>
       </span>
     {:else}
-      <span class="list-title">All Notes</span>
+      <span class="list-title">{title}</span>
     {/if}
-    <button
-      class="new-btn"
-      onclick={oncreate}
-      aria-label="New note"
-      title="New note"
-    >
+    <button class="new-btn" onclick={oncreate} aria-label="New note" title="New note">
       <svg
         width="14"
         height="14"
@@ -230,20 +222,16 @@
         stroke-linecap="round"
         stroke-linejoin="round"
       >
-        <line x1="12" y1="5" x2="12" y2="19" /><line
-          x1="5"
-          y1="12"
-          x2="19"
-          y2="12"
-        />
+        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
       </svg>
     </button>
   </div>
 
   <div class="list-scroll" bind:this={listScrollEl}>
     {#each groups as group (group.key)}
-      <button class="group-header" onclick={() => toggle(group.key)}>
+      <button class="group-bar" onclick={() => toggle(group.key)}>
         <span class="group-label">{group.key}</span>
+        <div class="group-rule"></div>
         <span class="group-count">{group.rows.length}</span>
         <span class="chevron" class:rotated={collapsed[group.key]}>▾</span>
       </button>
@@ -251,73 +239,54 @@
       {#if !collapsed[group.key]}
         {#each group.rows as row (row.note.id)}
           {@const isActive = row.note.id === activeId}
-          {@const isRecent = group.key === "Recent"}
           {@const menuOpen = openMenuId === row.note.id}
           {@const showDots = hoverId === row.note.id || isActive || menuOpen}
 
           <div
             class="note-row"
             class:active={isActive}
-            class:compact={!isRecent}
             class:menu-open={menuOpen}
             role="button"
             tabindex="0"
             onclick={() => onselect(row.note)}
             onkeydown={(e) => e.key === "Enter" && onselect(row.note)}
-            onmouseenter={() => {
-              hoverId = row.note.id;
-            }}
-            onmouseleave={() => {
-              if (!menuOpen) hoverId = null;
-            }}
+            onmouseenter={() => { hoverId = row.note.id; }}
+            onmouseleave={() => { if (!menuOpen) hoverId = null; }}
           >
             {#if isActive}
               <div class="active-bar"></div>
             {/if}
 
-            {#if isRecent}
-              <!-- Full card: ··· appears after the time stamp -->
-              <div class="row-meta">
-                <div class="tags">
-                  {#each row.tags as tag}
-                    {@const c = getTagColors(tag)}
-                    <span
-                      class="tag"
-                      style:color={c.text}
-                      style:background={c.bg}>{tag}</span
-                    >
-                  {/each}
-                </div>
-                <span class="time">{row.time}</span>
-                {#if showDots}
-                  <button
-                    class="overflow-trigger"
-                    onclick={(e) => toggleMenu(e, row.note.id)}
-                    aria-label="Note options"
-                    aria-expanded={menuOpen}>···</button
-                  >
-                {/if}
-              </div>
-              <div class="note-title serif">{row.note.title || "Untitled"}</div>
-              {#if row.preview}
-                <div class="note-preview">{row.preview}</div>
-              {/if}
-            {:else}
-              <!-- Compact row: ··· replaces the date on hover -->
-              <span class="note-title compact-title"
-                >{row.note.title || "Untitled"}</span
-              >
+            <div class="row-head">
+              <span class="row-title">{row.displayTitle}</span>
               {#if showDots}
                 <button
                   class="overflow-trigger"
                   onclick={(e) => toggleMenu(e, row.note.id)}
                   aria-label="Note options"
-                  aria-expanded={menuOpen}>···</button
-                >
+                  aria-expanded={menuOpen}
+                >···</button>
               {:else}
-                <span class="date">{row.date}</span>
+                <span class="row-date">{row.date}</span>
               {/if}
+            </div>
+
+            {#if row.preview}
+              <div class="row-preview">{row.preview}</div>
             {/if}
+
+            <div class="row-foot">
+              {#each row.tags.slice(0, 2) as tag}
+                {@const c = getTagColors(tag)}
+                <span class="tag-entry" style:color={c.text}>
+                  <span class="tag-dot-sm" style:background={c.dot}></span>{tag}
+                </span>
+              {/each}
+              {#if row.tags.length > 2}
+                <span class="tag-extra">+{row.tags.length - 2}</span>
+              {/if}
+              <span class="row-words">{row.words}w</span>
+            </div>
           </div>
         {/each}
       {/if}
@@ -334,13 +303,6 @@
       tabindex="-1"
       onmousedown={(e) => e.stopPropagation()}
     >
-      {#if openMenuIsRecent}
-        <button
-          class="menu-item"
-          role="menuitem"
-          onclick={(e) => menuAction(e, "pin", menuNoteId)}>Pin note</button
-        >
-      {/if}
       <button
         class="menu-item"
         role="menuitem"
@@ -369,7 +331,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 16px 12px;
+    padding: 14px 18px 12px;
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
     background: var(--color-bg);
@@ -384,6 +346,20 @@
     color: var(--color-text);
     letter-spacing: -0.01em;
     font-family: var(--font-mono);
+  }
+
+  .tag-active {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tag-filter-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 
   .new-btn {
@@ -404,7 +380,7 @@
     color: var(--color-moss);
   }
 
-  /* ── Scroll ── */
+  /* ── Scroll container ── */
   .list-scroll {
     flex: 1;
     overflow-y: auto;
@@ -412,14 +388,14 @@
     scrollbar-color: var(--color-border) transparent;
   }
 
-  /* ── Group header ── */
-  .group-header {
+  /* ── Group bar ── */
+  .group-bar {
     width: 100%;
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 7px 16px 6px;
-    background: var(--color-surface);
+    padding: 9px 18px 7px;
+    background: rgba(0, 0, 0, 0.018);
     border: none;
     border-bottom: 1px solid var(--color-border);
     cursor: pointer;
@@ -428,28 +404,32 @@
     z-index: 2;
     transition: background 120ms;
   }
-  .group-header:hover {
-    background: var(--color-surface-2);
+  .group-bar:hover {
+    background: rgba(0, 0, 0, 0.032);
   }
 
   .group-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--color-text-muted);
-    flex: 1;
     text-align: left;
     font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+
+  .group-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
   }
 
   .group-count {
     font-size: 10px;
     color: var(--color-text-muted);
-    background: rgba(0, 0, 0, 0.06);
-    padding: 1px 5px;
-    border-radius: 8px;
     font-family: var(--font-mono);
+    flex-shrink: 0;
   }
 
   .chevron {
@@ -457,12 +437,13 @@
     color: var(--color-text-muted);
     transition: transform 0.15s;
     display: inline-block;
+    flex-shrink: 0;
   }
   .chevron.rotated {
     transform: rotate(-90deg);
   }
 
-  /* ── Note row base ── */
+  /* ── Note row ── */
   .note-row {
     display: block;
     width: 100%;
@@ -475,9 +456,10 @@
     transition: background 120ms;
     color: inherit;
     font: inherit;
+    padding: 12px 18px;
   }
   .note-row:hover {
-    background: var(--color-surface);
+    background: rgba(0, 0, 0, 0.025);
   }
   .note-row.active {
     background: var(--color-surface-2);
@@ -486,75 +468,51 @@
     background: var(--color-surface-2);
   }
 
-  /* ── Active bar ── */
+  /* ── Active accent bar ── */
   .active-bar {
     position: absolute;
     left: 0;
-    top: 8px;
-    bottom: 8px;
+    top: 10px;
+    bottom: 10px;
     width: 2.5px;
     background: var(--color-moss);
     border-radius: 0 2px 2px 0;
   }
 
-  /* ── Recent (full) row ── */
-  .note-row:not(.compact) {
-    padding: 13px 16px;
-  }
-
-  .row-meta {
+  /* ── Title + date row ── */
+  .row-head {
     display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-bottom: 5px;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
   }
 
-  .tags {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .tag {
-    font-size: 10px;
-    font-family: var(--font-mono);
-    padding: 1px 5px;
-    border-radius: 3px;
-  }
-
-  .tag-active {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .tag-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .note-title {
-    display: block;
-    font-size: 13px;
+  .row-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 13.5px;
     font-weight: 600;
+    font-family: var(--font-body);
     color: var(--color-text);
     line-height: 1.3;
-    margin-bottom: 5px;
-    font-family: var(--font-mono);
-  }
-  .note-title.serif {
-    font-family: var(--font-body);
-    font-size: 13.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .note-preview {
+  .row-date {
+    font-size: 10.5px;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+  }
+
+  /* ── Preview ── */
+  .row-preview {
     font-size: 11.5px;
     color: var(--color-text-muted);
-    line-height: 1.55;
+    line-height: 1.5;
+    margin-bottom: 7px;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -563,44 +521,42 @@
     font-family: var(--font-body);
   }
 
-  /* margin-left: auto pushes time to the right; ··· button follows immediately after */
-  .time {
+  /* ── Footer meta row ── */
+  .row-foot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tag-entry {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+
+  .tag-dot-sm {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .tag-extra {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+
+  .row-words {
     margin-left: auto;
     font-size: 10px;
     color: var(--color-text-muted);
+    font-family: var(--font-mono);
     flex-shrink: 0;
-    font-family: var(--font-mono);
-  }
-
-  /* ── Compact (older) row ── */
-  .note-row.compact {
-    padding: 7px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .compact-title {
-    flex: 1;
-    min-width: 0;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--color-text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 0;
-    font-family: var(--font-mono);
-  }
-  .note-row.active .compact-title {
-    color: var(--color-text);
-  }
-
-  .date {
-    font-size: 10px;
-    color: var(--color-text-muted);
-    flex-shrink: 0;
-    font-family: var(--font-mono);
   }
 
   /* ── Overflow trigger (···) ── */
@@ -625,7 +581,6 @@
   }
 
   /* ── Overflow menu popover ── */
-  /* position:fixed so it escapes overflow:hidden on .note-list and .list-scroll */
   .overflow-menu {
     position: fixed;
     background: var(--color-bg);

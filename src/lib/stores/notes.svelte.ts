@@ -11,6 +11,7 @@ import { syncStore } from "$lib/stores/sync.svelte";
 import {
   DEFAULT_NOTEBOOK_ID,
   DEFAULT_NOTEBOOK_NAME,
+  canDeleteNotebook,
   filterNotesByNotebook,
   resolveActiveNotebookId,
   resolveNotebookForTagSelection,
@@ -175,6 +176,26 @@ class NotesStore {
       this.setActiveNotebook(id);
     } catch (err) {
       console.error("Failed to create notebook:", err);
+    }
+  }
+
+  async renameNotebook(id: string, name: string): Promise<void> {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    try {
+      const db = await getDb();
+      const now = Date.now();
+      await db
+        .update(notebooksTable)
+        .set({ name: trimmed, updated_at: now })
+        .where(eq(notebooksTable.id, id));
+      const idx = this.notebooks.findIndex((nb) => nb.id === id);
+      if (idx !== -1) {
+        this.notebooks[idx].name = trimmed;
+        this.notebooks[idx].updated_at = now;
+      }
+    } catch (err) {
+      console.error("Failed to rename notebook:", err);
     }
   }
 

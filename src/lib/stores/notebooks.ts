@@ -41,3 +41,17 @@ function extractTags(body: string): string[] {
   const matches = body.match(/#\p{L}[\p{L}\p{N}_]*/gu) ?? [];
   return [...new Set(matches.map((tag) => tag.toLowerCase()))];
 }
+
+export function canDeleteNotebook(
+  notes: Note[],
+  notebookId: string,
+): { ok: true } | { ok: false; error: string } {
+  const count = notes.filter((n) => n.notebook_id === notebookId).length;
+  if (count > 0) {
+    return {
+      ok: false,
+      error: `Move or delete the ${count} note${count === 1 ? "" : "s"} in this notebook first.`,
+    };
+  }
+  return { ok: true };
+}

@@ -5,6 +5,7 @@ import {
   filterNotesByNotebook,
   resolveNotebookForTagSelection,
   resolveActiveNotebookId,
+  canDeleteNotebook,
 } from "./notebooks";
 
 const now = 1_700_000_000_000;
@@ -85,5 +86,30 @@ describe("tag notebook resolution", () => {
     ];
 
     expect(resolveNotebookForTagSelection(notes, "work", "#journal")).toBeNull();
+  });
+});
+
+describe("canDeleteNotebook", () => {
+  it("allows deleting a notebook with no notes", () => {
+    const notes = [note("a", "work")];
+    expect(canDeleteNotebook(notes, "personal")).toEqual({ ok: true });
+  });
+
+  it("blocks deleting a notebook that has notes (plural)", () => {
+    const notes = [note("a", "work"), note("b", "work")];
+    const result = canDeleteNotebook(notes, "work");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/2 notes/);
+    }
+  });
+
+  it("blocks with singular 'note' for exactly one note", () => {
+    const notes = [note("a", "work")];
+    const result = canDeleteNotebook(notes, "work");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/1 note[^s]/);
+    }
   });
 });

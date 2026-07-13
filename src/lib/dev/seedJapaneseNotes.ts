@@ -1,6 +1,7 @@
 import { getDb } from "$lib/db";
 import { notes } from "$lib/db/schema";
 import { embedNote } from "$lib/stores/search.svelte";
+import { DEFAULT_NOTEBOOK_ID } from "$lib/stores/notebooks";
 
 const JAPANESE_NOTES = [
   {
@@ -37,16 +38,15 @@ export async function seedJapaneseNotes(): Promise<void> {
     const id = crypto.randomUUID();
     const created_at =
       now - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000);
-    await db
-      .insert(notes)
-      .values({
-        id,
-        title: note.title,
-        body: note.body,
-        created_at,
-        updated_at: created_at,
-        language: "ja",
-      });
+    await db.insert(notes).values({
+      id,
+      title: note.title,
+      body: note.body,
+      created_at,
+      updated_at: created_at,
+      language: "ja",
+      notebook_id: DEFAULT_NOTEBOOK_ID,
+    });
     await embedNote(id, note.title, note.body);
   }
 }

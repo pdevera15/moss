@@ -199,6 +199,23 @@ class NotesStore {
     }
   }
 
+  async deleteNotebook(id: string): Promise<{ error: string } | void> {
+    if (id === DEFAULT_NOTEBOOK_ID) return;
+    const check = canDeleteNotebook(this.notes, id);
+    if (!check.ok) return { error: check.error };
+    try {
+      const db = await getDb();
+      await db.delete(notebooksTable).where(eq(notebooksTable.id, id));
+      this.notebooks = this.notebooks.filter((nb) => nb.id !== id);
+      if (this.activeNotebookId === id) {
+        this.activeNotebookId = null;
+        this.activeNote = this.filteredNotes[0] ?? null;
+      }
+    } catch (err) {
+      console.error("Failed to delete notebook:", err);
+    }
+  }
+
   async deleteNote(id: string): Promise<void> {
     try {
       const db = await getDb();

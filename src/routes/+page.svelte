@@ -6,6 +6,7 @@
   import NoteList from "$lib/components/NoteList/NoteList.svelte";
   import TaskList from "$lib/components/Tasks/TaskList.svelte";
   import { notesStore } from "$lib/stores/notes.svelte";
+  import { DEFAULT_NOTEBOOK_ID } from "$lib/stores/notebooks";
   import { tasksStore } from "$lib/stores/tasks.svelte";
   import { syncStore } from "$lib/stores/sync.svelte";
   import { getTagColors } from "$lib/utils/tagColors";
@@ -20,6 +21,32 @@
   let activeSection = $state<"notes" | "tasks" | "search">("notes");
   let paletteOpen = $state(false);
   let settingsOpen = $state(false);
+  let menuNotebookId = $state<string | null>(null);
+
+  function openNotebookMenu(e: MouseEvent, id: string) {
+    e.stopPropagation();
+    menuNotebookId = menuNotebookId === id ? null : id;
+  }
+
+  async function handleRenameNotebook(id: string, currentName: string) {
+    const name = window.prompt("Rename notebook", currentName);
+    if (!name?.trim()) return;
+    await notesStore.renameNotebook(id, name.trim());
+    menuNotebookId = null;
+  }
+
+  async function handleDeleteNotebook(id: string) {
+    const count = notesStore.notes.filter((n) => n.notebook_id === id).length;
+    if (count > 0) {
+      window.alert(
+        `Move or delete the ${count} note${count === 1 ? "" : "s"} in this notebook first.`,
+      );
+      return;
+    }
+    if (!window.confirm("Delete this notebook?")) return;
+    await notesStore.deleteNotebook(id);
+    menuNotebookId = null;
+  }
 
   function openPalette() {
     paletteOpen = true;
@@ -230,25 +257,52 @@
         {@const nbColor = notebookColor(notebook.id)}
         {@const isActive = notesStore.activeNotebookId === notebook.id}
         {@const nbCount = notesStore.notes.filter((n) => n.notebook_id === notebook.id).length}
-        <button
-          class="nb-row"
-          class:active={isActive}
-          onclick={() => { notesStore.setActiveNotebook(notebook.id); activeSection = "notes"; }}
-        >
-          <span class="nb-twist" style="opacity:0">▸</span>
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" class="nb-glyph">
-            <rect x="3" y="2" width="10" height="12" rx="1.4"
-              fill={isActive ? "rgba(255,255,255,0.18)" : nbColor}
-              fill-opacity={isActive ? "1" : "0.14"}
-              stroke={isActive ? "rgba(255,255,255,0.9)" : nbColor}
-              stroke-width="1.3"/>
-            <line x1="5.4" y1="2" x2="5.4" y2="14"
-              stroke={isActive ? "rgba(255,255,255,0.9)" : nbColor}
-              stroke-width="1.3"/>
-          </svg>
-          <span class="nb-name">{notebook.name}</span>
-          <span class="nb-count" class:active={isActive}>{nbCount}</span>
-        </button>
+        {@const isDefault = notebook.id === DEFAULT_NOTEBOOK_ID}
+        {@const menuOpen = menuNotebookId === notebook.id}
+        <div class="nb-row-wrap">
+          <button
+            class="nb-row"
+            class:active={isActive}
+            onclick={() => { notesStore.setActiveNotebook(notebook.id); activeSection = "notes"; }}
+          >
+            <span class="nb-twist" style="opacity:0">▸</span>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" class="nb-glyph">
+              <rect x="3" y="2" width="10" height="12" rx="1.4"
+                fill={isActive ? "rgba(255,255,255,0.18)" : nbColor}
+                fill-opacity={isActive ? "1" : "0.14"}
+                stroke={isActive ? "rgba(255,255,255,0.9)" : nbColor}
+                stroke-width="1.3"/>
+              <line x1="5.4" y1="2" x2="5.4" y2="14"
+                stroke={isActive ? "rgba(255,255,255,0.9)" : nbColor}
+                stroke-width="1.3"/>
+            </svg>
+            <span class="nb-name">{notebook.name}</span>
+            <span class="nb-count" class:active={isActive}>{nbCount}</span>
+          </button>
+          {#if !isDefault}
+            <button
+              class="nb-menu-btn"
+              class:open={menuOpen}
+              onclick={(e) => openNotebookMenu(e, notebook.id)}
+              aria-label="Notebook options"
+              title="Notebook options"
+            >···</button>
+            {#if menuOpen}
+              <div class="nb-menu" role="menu">
+                <button
+                  class="nb-menu-item"
+                  role="menuitem"
+                  onclick={() => handleRenameNotebook(notebook.id, notebook.name)}
+                >Rename</button>
+                <button
+                  class="nb-menu-item nb-menu-item--danger"
+                  role="menuitem"
+                  onclick={() => handleDeleteNotebook(notebook.id)}
+                >Delete</button>
+              </div>
+            {/if}
+          {/if}
+        </div>
       {/each}
 
       <!-- Tags -->
@@ -343,6 +397,13 @@
         <StatusBar {wordCount} syncStatus={syncStore.status} />
       {/if}
     </main>
+  {/if}
+  {#if menuNotebookId !== null}
+    <div
+      class="nb-menu-backdrop"
+      role="none"
+      onclick={() => (menuNotebookId = null)}
+    ></div>
   {/if}
 </div>
 
@@ -552,6 +613,96 @@
   }
   .nb-row.active .nb-name {
     font-weight: 600;
+  }
+
+  /* ── Notebook row wrapper ── */
+  .nb-row-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .nb-row-wrap .nb-row {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ── Notebook "..." menu button ── */
+  .nb-menu-btn {
+    position: absolute;
+    right: 8px;
+    width: 18px;
+    height: 18px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    opacity: 0;
+    z-index: 15;
+    transition: opacity 120ms, background 120ms;
+  }
+
+  .nb-row-wrap:hover .nb-menu-btn,
+  .nb-menu-btn.open {
+    opacity: 1;
+  }
+
+  .nb-menu-btn:hover {
+    background: var(--color-border);
+    color: var(--color-text);
+  }
+
+  /* ── Notebook dropdown menu ── */
+  .nb-menu {
+    position: absolute;
+    right: 6px;
+    top: calc(100% + 2px);
+    z-index: 20;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    min-width: 120px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nb-menu-item {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    font-size: 12px;
+    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 100ms;
+  }
+
+  .nb-menu-item:hover {
+    background: var(--color-surface-2);
+  }
+
+  .nb-menu-item--danger {
+    color: var(--error);
+  }
+
+  /* ── Backdrop (click-outside to close menu) ── */
+  .nb-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
   }
 
   .nb-count {
